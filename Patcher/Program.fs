@@ -7,7 +7,7 @@ open System.Linq
 open System.IO
 
 Console.OutputEncoding <- Text.Encoding.UTF8
-let outPath = @"Elf.esp"    
+let outPath = @"Elf.esp"
 
 let outputMod =
     new SkyrimMod(ModKey.FromNameAndExtension(Path.GetFileName(outPath.AsSpan())), SkyrimRelease.SkyrimSE)
@@ -101,25 +101,24 @@ module MutArmor =
 
 [<EntryPoint>]
 let main args =
-    let loaderOder =
-        let path =
-            @"G:\SteamLibrary\steamapps\common\Skyrim Special Edition\Data"
+    let modGetter =
+        let path = Directory.GetCurrentDirectory()
 
         let loader =
             LoadOrder.GetListings(GameRelease.SkyrimSE, DirectoryPath(path))
 
-        LoadOrder.Import<SkyrimMod>
-            (dataFolder = DirectoryPath(path), loadOrder = loader, gameRelease = GameRelease.SkyrimSE)
+        let loadOrder =
+            LoadOrder.Import<SkyrimMod>
+                (dataFolder = DirectoryPath(path), loadOrder = loader, gameRelease = GameRelease.SkyrimSE)
 
-    for armor in loaderOder
-        .PriorityOrder
-        .Cast<IModListing<IModGetter>>()
-        .WinningOverrides<IArmorGetter>() do
-        printf $"Берем {armor.Name}..."
+        loadOrder.PriorityOrder.Cast<IModListing<IModGetter>>()
+
+    for armor in modGetter.WinningOverrides<IArmorGetter>() do
 
         match armor.Keywords with
         | null -> ()
         | keys ->
+            printf $"Берем {armor.Name}..."
             MutArmor.Heavy armor (keys.ToList()) |> ignore
             MutArmor.Light armor (keys.ToList()) |> ignore
             MutArmor.Shield armor (keys.ToList()) |> ignore
