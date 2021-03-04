@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Patcher", "Patcher\Patcher.fsproj", "{5BC844EA-CC2B-4E0C-86C1-C7E422CFF4C0}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Launcher", "Launcher\Launcher.fsproj", "{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{5BC844EA-CC2B-4E0C-86C1-C7E422CFF4C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5BC844EA-CC2B-4E0C-86C1-C7E422CFF4C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BC844EA-CC2B-4E0C-86C1-C7E422CFF4C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

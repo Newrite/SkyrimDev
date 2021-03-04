@@ -1,7 +1,6 @@
 ﻿open System
 open System.Text
 open Mutagen.Bethesda
-open Mutagen.Bethesda.Oblivion
 open Mutagen.Bethesda.Skyrim
 open Noggog
 open System.Linq
@@ -28,10 +27,12 @@ module Key =
 
 
 module MutArmor =
+
     let Heavy (armor: IArmorGetter) (keys: Collections.Generic.List<IFormLink<IKeywordGetter>>) =
         match keys with
-        | keysList when keysList.Contains(Key.Heavy)
-                        && keysList.Contains(Key.Cuirass) ->
+        | keysList when
+            keysList.Contains(Key.Heavy)
+            && keysList.Contains(Key.Cuirass) ->
             let copy = armor.DeepCopy()
             printf " Тяжелая кираса"
             copy.ArmorRating <- armor.ArmorRating * (float32 2.5) + (float32 10.0)
@@ -39,8 +40,9 @@ module MutArmor =
             outputMod.Armors.RecordCache.Set(copy)
             printf $" Пишем в {outPath}..."
             ignore
-        | keysList when keysList.Contains(Key.Heavy)
-                        && not (keysList.Contains(Key.Cuirass)) ->
+        | keysList when
+            keysList.Contains(Key.Heavy)
+            && not (keysList.Contains(Key.Cuirass)) ->
             let copy = armor.DeepCopy()
             printf " Тяжелый доспех"
             copy.ArmorRating <- armor.ArmorRating * (float32 2.5)
@@ -50,10 +52,12 @@ module MutArmor =
             ignore
         | _ -> ignore
 
+
     let Light (armor: IArmorGetter) (keys: Collections.Generic.List<IFormLink<IKeywordGetter>>) =
         match keys with
-        | keysList when keysList.Contains(Key.Light)
-                        && keysList.Contains(Key.Cuirass) ->
+        | keysList when
+            keysList.Contains(Key.Light)
+            && keysList.Contains(Key.Cuirass) ->
             let copy = armor.DeepCopy()
             printf " Легкая кираса"
             copy.ArmorRating <- armor.ArmorRating * (float32 1.5) + (float32 10.0)
@@ -61,8 +65,9 @@ module MutArmor =
             outputMod.Armors.RecordCache.Set(copy)
             printf $" Пишем в {outPath}..."
             ignore
-        | keysList when keysList.Contains(Key.Light)
-                        && not (keysList.Contains(Key.Cuirass)) ->
+        | keysList when
+            keysList.Contains(Key.Light)
+            && not (keysList.Contains(Key.Cuirass)) ->
             let copy = armor.DeepCopy()
             printf " Легкий доспех"
             copy.ArmorRating <- armor.ArmorRating * (float32 1.5)
@@ -72,12 +77,15 @@ module MutArmor =
             ignore
         | _ -> ignore
 
+
     let Shield (armor: IArmorGetter) (keys: Collections.Generic.List<IFormLink<IKeywordGetter>>) =
         match keys with
-        | keysList when keysList.Contains(Key.Shield)
-                        && not
-                            (keysList.Contains(Key.Light)
-                             || keysList.Contains(Key.Heavy)) ->
+        | keysList when
+            keysList.Contains(Key.Shield)
+            && not (
+                keysList.Contains(Key.Light)
+                || keysList.Contains(Key.Heavy)
+            ) ->
             match armor.BodyTemplate.ArmorType with
             | x when x = ArmorType.HeavyArmor ->
                 let copy = armor.DeepCopy()
@@ -118,8 +126,11 @@ let main args =
             LoadOrder.GetListings(GameRelease.SkyrimSE, DirectoryPath(path))
 
         let loadOrder =
-            LoadOrder.Import<SkyrimMod>
-                (dataFolder = DirectoryPath(path), loadOrder = loader, gameRelease = GameRelease.SkyrimSE)
+            LoadOrder.Import<SkyrimMod>(
+                dataFolder = DirectoryPath(path),
+                loadOrder = loader,
+                gameRelease = GameRelease.SkyrimSE
+            )
 
         loadOrder.PriorityOrder.Cast<IModListing<IModGetter>>()
 
