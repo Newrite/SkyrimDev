@@ -6,7 +6,7 @@ open Noggog
 open System.Linq
 open System.IO
 
-Console.OutputEncoding <- Text.Encoding.UTF8
+Console.OutputEncoding <- Encoding.UTF8
 let outPath = @"Elf.esp"
 
 let outputMod =
@@ -113,6 +113,8 @@ let main args =
 
         loadOrder.PriorityOrder.Cast<IModListing<IModGetter>>()
 
+    let cache = modGetter.ToUntypedImmutableLinkCache()
+
     for armor in modGetter.WinningOverrides<IArmorGetter>() do
 
         match armor.Keywords with
@@ -123,6 +125,16 @@ let main args =
             MutArmor.Light armor (keys.ToList()) |> ignore
             MutArmor.Shield armor (keys.ToList()) |> ignore
             printfn " готово."
+
+            match armor.TemplateArmor.IsNull with
+            | true -> ()
+            | false ->
+                let arm =
+                    cache.Resolve(armor.TemplateArmor.FormKey, armor.GetType())
+
+                match arm with
+                | :? IArmorGetter as arm -> printfn $"{arm.ArmorRating} armor"
+                | _ -> ()
 
     outputMod.WriteToBinaryParallel(outPath)
     printfn " Патч успешно создан."
