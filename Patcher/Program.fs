@@ -1,6 +1,7 @@
 ﻿open System
 open System.Text
 open Mutagen.Bethesda
+open Mutagen.Bethesda.Oblivion
 open Mutagen.Bethesda.Skyrim
 open Noggog
 open System.Linq
@@ -98,6 +99,15 @@ module MutArmor =
             | _ -> ignore
         | _ -> ignore
 
+    let Template (armor: IArmorGetter) (tempOfArmor: IArmorGetter) =
+        printf " Обновляем цену из шаблона"
+        let copy = armor.DeepCopy()
+        printf $" {copy.Value} -> {tempOfArmor.Value}"
+        copy.Value <- tempOfArmor.Value
+        printf $" Пишем в {outPath}..."
+        outputMod.Armors.RecordCache.Set(copy)
+        ignore
+
 
 [<EntryPoint>]
 let main args =
@@ -120,21 +130,20 @@ let main args =
         match armor.Keywords with
         | null -> ()
         | keys ->
-            printf $"Берем {armor.Name}..."
-            MutArmor.Heavy armor (keys.ToList()) |> ignore
-            MutArmor.Light armor (keys.ToList()) |> ignore
-            MutArmor.Shield armor (keys.ToList()) |> ignore
-            printfn " готово."
-
             match armor.TemplateArmor.IsNull with
-            | true -> ()
             | false ->
-                let arm =
-                    cache.Resolve(armor.TemplateArmor.FormKey, armor.GetType())
-
-                match arm with
-                | :? IArmorGetter as arm -> printfn $"{arm.ArmorRating} armor"
+                match cache.Resolve(armor.TemplateArmor.FormKey, armor.GetType()) with
+                | :? IArmorGetter as arm ->
+                    printf $"Берем {armor.Name}... имеет шаблон!"
+                    MutArmor.Template arm armor |> ignore
+                    printfn " готово."
                 | _ -> ()
+            | true ->
+                printf $"Берем {armor.Name}..."
+                MutArmor.Heavy armor (keys.ToList()) |> ignore
+                MutArmor.Light armor (keys.ToList()) |> ignore
+                MutArmor.Shield armor (keys.ToList()) |> ignore
+                printfn " готово."
 
     outputMod.WriteToBinaryParallel(outPath)
     printfn " Патч успешно создан."
