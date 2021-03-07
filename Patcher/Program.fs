@@ -6,11 +6,15 @@ open Noggog
 open System.Linq
 open System.IO
 
-Console.OutputEncoding <- Encoding.UTF8
-let outPath = @"Elf.esp"
+Console.OutputEncoding <- Encoding.Default
 
-let outputMod =
-    new SkyrimMod(ModKey.FromNameAndExtension(Path.GetFileName(outPath.AsSpan())), SkyrimRelease.SkyrimSE)
+module Path =
+    let outName = @"Elf.esp"
+
+    let delete = File.Delete(outName)
+
+    let outMod =
+        SkyrimMod(ModKey.FromNameAndExtension(Path.GetFileName(outName.AsSpan())), SkyrimRelease.SkyrimSE)
 
 module Key =
     let Heavy =
@@ -33,22 +37,22 @@ module MutArmor =
         | keysList when
             keysList.Contains(Key.Heavy)
             && keysList.Contains(Key.Cuirass) ->
-            let copy = armor.DeepCopy()
+            let armorCopy =
+                Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
             printf " Тяжелая кираса"
-            copy.ArmorRating <- armor.ArmorRating * (float32 2.5) + (float32 10.0)
-            printf $" Мутируем значение брони {armor.ArmorRating}->{copy.ArmorRating}..."
-            outputMod.Armors.RecordCache.Set(copy)
-            printf $" Пишем в {outPath}..."
+            armorCopy.ArmorRating <- armor.ArmorRating * (float32 2.5) + (float32 10.0)
+            printf $" Мутируем значение брони {armor.ArmorRating}->{armorCopy.ArmorRating}..."
             ignore
         | keysList when
             keysList.Contains(Key.Heavy)
             && not (keysList.Contains(Key.Cuirass)) ->
-            let copy = armor.DeepCopy()
+            let armorCopy =
+                Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
             printf " Тяжелый доспех"
-            copy.ArmorRating <- armor.ArmorRating * (float32 2.5)
-            printf $" Мутируем значение брони {armor.ArmorRating}->{copy.ArmorRating}..."
-            outputMod.Armors.RecordCache.Set(copy)
-            printf $" Пишем в {outPath}..."
+            armorCopy.ArmorRating <- armor.ArmorRating * (float32 2.5)
+            printf $" Мутируем значение брони {armor.ArmorRating}->{armorCopy.ArmorRating}..."
             ignore
         | _ -> ignore
 
@@ -58,22 +62,22 @@ module MutArmor =
         | keysList when
             keysList.Contains(Key.Light)
             && keysList.Contains(Key.Cuirass) ->
-            let copy = armor.DeepCopy()
+            let armorCopy =
+                Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
             printf " Легкая кираса"
-            copy.ArmorRating <- armor.ArmorRating * (float32 1.5) + (float32 10.0)
-            printf $" Мутируем значение брони {armor.ArmorRating}->{copy.ArmorRating}..."
-            outputMod.Armors.RecordCache.Set(copy)
-            printf $" Пишем в {outPath}..."
+            armorCopy.ArmorRating <- armor.ArmorRating * (float32 1.5) + (float32 10.0)
+            printf $" Мутируем значение брони {armor.ArmorRating}->{armorCopy.ArmorRating}..."
             ignore
         | keysList when
             keysList.Contains(Key.Light)
             && not (keysList.Contains(Key.Cuirass)) ->
-            let copy = armor.DeepCopy()
+            let armorCopy =
+                Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
             printf " Легкий доспех"
-            copy.ArmorRating <- armor.ArmorRating * (float32 1.5)
-            printf $" Мутируем значение брони {armor.ArmorRating}->{copy.ArmorRating}..."
-            outputMod.Armors.RecordCache.Set(copy)
-            printf $" Пишем в {outPath}..."
+            armorCopy.ArmorRating <- armor.ArmorRating * (float32 1.5)
+            printf $" Мутируем значение брони {armor.ArmorRating}->{armorCopy.ArmorRating}..."
             ignore
         | _ -> ignore
 
@@ -87,38 +91,38 @@ module MutArmor =
                 || keysList.Contains(Key.Heavy)
             ) ->
             match armor.BodyTemplate.ArmorType with
-            | x when x = ArmorType.HeavyArmor ->
-                let copy = armor.DeepCopy()
+            | shield when shield = ArmorType.HeavyArmor ->
+                let armorCopy =
+                    Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
                 printf " Тяжелый щит"
-                copy.Keywords.Add(Key.Heavy)
+                armorCopy.Keywords.Add(Key.Heavy)
                 printf " добавляем KW брони"
-                outputMod.Armors.RecordCache.Set(copy)
-                printf $" Пишем в {outPath}..."
                 ignore
-            | x when x = ArmorType.LightArmor ->
-                let copy = armor.DeepCopy()
+            | shield when shield = ArmorType.LightArmor ->
+                let armorCopy =
+                    Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
                 printf " Легкий щит"
-                copy.Keywords.Add(Key.Light)
+                armorCopy.Keywords.Add(Key.Light)
                 printf " добавляем KW брони"
-                outputMod.Armors.RecordCache.Set(copy)
-                printf $" Пишем в {outPath}..."
                 ignore
-            | x when x = ArmorType.Clothing -> ignore
             | _ -> ignore
         | _ -> ignore
 
     let Template (armor: IArmorGetter) (tempOfArmor: IArmorGetter) =
         printf " Обновляем цену из шаблона"
-        let copy = armor.DeepCopy()
-        printf $" {copy.Value} -> {tempOfArmor.Value}"
-        copy.Value <- tempOfArmor.Value
-        printf $" Пишем в {outPath}..."
-        outputMod.Armors.RecordCache.Set(copy)
+
+        let armorCopy =
+            Path.outMod.Armors.GetOrAddAsOverride(armor :?> Armor)
+
+        printf $" {armorCopy.Value} -> {tempOfArmor.Value}"
+        armorCopy.Value <- tempOfArmor.Value
         ignore
 
 
-[<EntryPoint>]
-let main args =
+module ModGet =
+
     let modGetter =
         let path = Directory.GetCurrentDirectory()
 
@@ -131,32 +135,59 @@ let main args =
                 loadOrder = loader,
                 gameRelease = GameRelease.SkyrimSE
             )
+            |> (fun (x: LoadOrder<IModListing<SkyrimMod>>) ->
+                let order = new LoadOrder<IModListing<SkyrimMod>>()
+
+                for _mod in x.ListedOrder do
+                    if _mod.Enabled then order.Add(_mod)
+
+                order)
 
         loadOrder.PriorityOrder.Cast<IModListing<IModGetter>>()
 
     let cache = modGetter.ToUntypedImmutableLinkCache()
 
-    for armor in modGetter.WinningOverrides<IArmorGetter>() do
-
-        match armor.Keywords with
-        | null -> ()
-        | keys ->
-            match armor.TemplateArmor.IsNull with
-            | false ->
-                match cache.Resolve(armor.TemplateArmor.FormKey, armor.GetType()) with
-                | :? IArmorGetter as arm ->
-                    printf $"Берем {armor.Name}... имеет шаблон!"
-                    MutArmor.Template arm armor |> ignore
-                    printfn " готово."
+module Patcher =
+    let startMutateArmor =
+    
+        let modsGetter = ModGet.modGetter
+    
+        let mutateTemplateArmor =
+            for armor in modsGetter.WinningOverrides<IArmorGetter>() do
+    
+                match armor.TemplateArmor.IsNull with
+                | false ->
+                    match armor.TemplateArmor.ResolveAll(ModGet.cache) with
+                    | enumTempOfArmor ->
+                        let tempOfArmor = enumTempOfArmor.Last()
+    
+                        if tempOfArmor.Value <> armor.Value then
+                            printf $"Берем {armor.Name}... имеет шаблон!"
+                            MutArmor.Template armor tempOfArmor |> ignore
+                            printfn " готово."
                 | _ -> ()
-            | true ->
-                printf $"Берем {armor.Name}..."
-                MutArmor.Heavy armor (keys.ToList()) |> ignore
-                MutArmor.Light armor (keys.ToList()) |> ignore
-                MutArmor.Shield armor (keys.ToList()) |> ignore
-                printfn " готово."
+    
+        let mutateArmor =
+            for armor in modsGetter.WinningOverrides<IArmorGetter>() do
+    
+                match armor.Keywords with
+                | null -> ()
+                | keys ->
+                    printf $"Берем {armor.Name}..."
+                    MutArmor.Heavy armor (keys.ToList()) |> ignore
+                    MutArmor.Light armor (keys.ToList()) |> ignore
+                    MutArmor.Shield armor (keys.ToList()) |> ignore
+                    printfn " готово."
+    
+        mutateTemplateArmor
+        mutateArmor
 
-    outputMod.WriteToBinaryParallel(outPath)
+[<EntryPoint>]
+let main args =
+
+    Path.delete
+    Patcher.startMutateArmor
+    Path.outMod.WriteToBinaryParallel(Path.outName)
     printfn " Патч успешно создан."
     Console.ReadKey() |> ignore
 

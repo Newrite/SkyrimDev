@@ -27,11 +27,10 @@ let seqHASH =
 
 let dict =
     let d = Dictionary<FileInfo, string>()
-    Seq.iter2 (fun (x: byte []) y -> d.Add(y, Array.fold (fun x y -> x + y.ToString()) "" x)) (seqHASH) (filesInfo)
+    Seq.iter2 (fun (x: byte []) y -> d.Add(y, Array.fold (fun x y -> x + y.ToString()) "" x)) seqHASH filesInfo
     d
 
 for key in dict do
     printf $"{key}\n"
-
 
 System.Console.ReadKey() |> ignore
