@@ -9,6 +9,7 @@ open System.IO
 Console.OutputEncoding <- Encoding.Default
 
 module Path =
+    [<Literal>]
     let outName = @"Elf.esp"
 
     let delete = File.Delete(outName)
@@ -167,7 +168,7 @@ module Patcher =
                             printfn " готово."
                 | _ -> ()
     
-        let mutateArmor =
+        let mutateArmor () =
             for armor in modsGetter.WinningOverrides<IArmorGetter>() do
     
                 match armor.Keywords with
@@ -178,6 +179,7 @@ module Patcher =
                     MutArmor.Light armor (keys.ToList()) |> ignore
                     MutArmor.Shield armor (keys.ToList()) |> ignore
                     printfn " готово."
+            ()
     
         mutateTemplateArmor
         mutateArmor
