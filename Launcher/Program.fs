@@ -18,7 +18,7 @@ let deserializeFromFile fileName =
     File.ReadAllText(fileName)
     |>JsonSerializer.Deserialize<Dictionary<string, string>>
 
-let [<Literal>] path = @"G:\testpapka"
+let path = Directory.GetCurrentDirectory()
 
 module Downloads =
     
@@ -28,7 +28,7 @@ module Downloads =
         status: bool
     }
     
-    let [<Literal>] private serverUrl = @"http://10.10.10.10:3030"
+    let [<Literal>] private serverUrl = @"http://api.juliarepository.space"
     
     let [<Literal>] private dropboxUrl = serverUrl + "/dropbox"
     let [<Literal>] private yandexUrl = serverUrl + "/yandex"

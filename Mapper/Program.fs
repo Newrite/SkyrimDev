@@ -1,4 +1,6 @@
-﻿open System.IO
+﻿//dotnet publish -c Release  -r win-x64 -p:PublishSingleFile=true --self-contained true
+//cli for build
+open System.IO
 open System.Text.Json
 open System.Collections.Generic
 open System.Security.Cryptography
