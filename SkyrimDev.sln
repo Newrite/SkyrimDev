@@ -4,6 +4,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Patcher", "Patcher\Patcher.
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Launcher", "Launcher\Launcher.fsproj", "{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Server", "Server\Server.fsproj", "{2BF716B4-224F-4C9E-9C58-CD7D87354209}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1760C9B1-57DC-4AE7-B4BD-F47D30EF1D21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BF716B4-224F-4C9E-9C58-CD7D87354209}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BF716B4-224F-4C9E-9C58-CD7D87354209}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BF716B4-224F-4C9E-9C58-CD7D87354209}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BF716B4-224F-4C9E-9C58-CD7D87354209}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
