@@ -1,4 +1,8 @@
-﻿open Saturn
+﻿//dotnet publish -c Release  -r linux-arm -p:PublishSingleFile=true --self-contained true
+//builds for arm orange pi pc+
+//for build on other platform edit TWBot.fsproj
+
+open Saturn
 open Giraffe
 open Microsoft
 open System.IO
@@ -26,7 +30,7 @@ module ServerAPI =
     let [<Literal>] qPathKey = "path"
     let [<Literal>] qModmapKey = "version"
     let [<Literal>] qModmapValueRelease = "release"
-    let modmap =
+    let modmap ()=
         let deserializeFromFile fileName =
             File.ReadAllText(fileName)
             |>JsonSerializer.Deserialize<Dictionary<string, string>>
@@ -45,11 +49,10 @@ module DiskRequests =
     
     let private yandexDiskInstance = new Client.Http.DiskHttpApi(Tokens.YandexToken)
     
-    let private memoize(f: 'a -> 'b) (filter: Dictionary<'a, 'b> -> unit) =
+    let private memoize(f: 'a -> 'b) =
         let dict = new Dictionary<'a, 'b>()
         
         let memoizedFunc (input: 'a) =
-            filter dict
             match dict.TryGetValue(input) with
             |true, x -> x
             |false, _ ->
@@ -81,8 +84,8 @@ module DiskRequests =
              |> json) next ctx
         |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
         
-    let requestToYandexDisk = memoize _requestToYandexDisk (fun dict -> printfn "%A" dict)
-    let requestToDropboxDisk = memoize _requestToDropboxDisk (fun dict -> printfn "%A" dict)
+    let requestToYandexDisk = memoize _requestToYandexDisk
+    let requestToDropboxDisk = memoize _requestToDropboxDisk
 
     
 
