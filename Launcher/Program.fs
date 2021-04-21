@@ -28,7 +28,7 @@ module Downloads =
         status: bool
     }
     
-    let [<Literal>] private serverUrl = @"http://localhost:3030"
+    let [<Literal>] private serverUrl = @"http://10.10.10.10:3030"
     
     let [<Literal>] private dropboxUrl = serverUrl + "/dropbox"
     let [<Literal>] private yandexUrl = serverUrl + "/yandex"

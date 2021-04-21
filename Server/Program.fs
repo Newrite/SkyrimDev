@@ -32,8 +32,8 @@ module ServerAPI =
     let [<Literal>] qModmapValueRelease = "release"
     let modmap ()=
         let deserializeFromFile fileName =
-            File.ReadAllText(fileName)
-            |>JsonSerializer.Deserialize<Dictionary<string, string>>
+            let text = File.ReadAllText(fileName)
+            text |> JsonSerializer.Deserialize<Dictionary<string, string>>
         deserializeFromFile Constants.fileNameModMapRelease
         
     let checkHeader (headers: AspNetCore.Http.IHeaderDictionary) headerToCheck (valueToFind: string) =
@@ -111,7 +111,7 @@ module Routers =
         get "/modmap" (fun next ctx ->
             match ctx.Request.Query.ContainsKey(ServerAPI.qModmapKey) with
             |true when ctx.Request.Query.[ServerAPI.qModmapKey].ToString().Contains(ServerAPI.qModmapValueRelease) ->
-                (json <| ServerAPI.modmap) next ctx
+                (json <| ServerAPI.modmap()) next ctx
             |true -> (RequestErrors.BAD_REQUEST "Wrong request.") next ctx
             |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
             |_ -> (ServerErrors.NOT_IMPLEMENTED "What the fuck.") next ctx)
