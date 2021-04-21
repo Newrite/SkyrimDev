@@ -5,31 +5,45 @@ open System.IO
 open System.Collections.Generic
 open System.Text.Json
 open Dropbox
+open Server
 open YandexDisk
 open Microsoft.Extensions.Logging
 
+
 module Constants =
-    let [<Literal>] qPathKey = "path"
-    let [<Literal>] qModmapKey = "version"
-    let [<Literal>] qModmapValueRelease = "release"
-    let [<Literal>] fileNameModMapRelease = "E:\Programming\F#\LaunchServer\modmap.json"
+    let [<Literal>] fileNameModMapRelease = "modmap.json"
     let [<Literal>] serverStatus = true
     let [<Literal>] information = "Already ok"
     let [<Literal>] Authorization = "Authorization"
-    let [<Literal>] Token = "Bearer OMEGALULISPOWER!"
-    let [<Literal>] tokendbx = "t4ld3cJMM9IAAAAAAAAAAXuuGeo2mLcMZxaYXjl7oaIg_up7yVTeJmp23ekpxERM"
-    let [<Literal>] tokendisk = "AQAAAABT8kstAAcN-S_wbWiH8kcMgqgu20WWdo4"
     
+    
+module ServerAPI =
+    
+    type ResponsStatus =
+        { StatusLine: bool
+          Information: string }
+    
+    let [<Literal>] qPathKey = "path"
+    let [<Literal>] qModmapKey = "version"
+    let [<Literal>] qModmapValueRelease = "release"
     let modmap =
         let deserializeFromFile fileName =
             File.ReadAllText(fileName)
             |>JsonSerializer.Deserialize<Dictionary<string, string>>
-        deserializeFromFile fileNameModMapRelease
+        deserializeFromFile Constants.fileNameModMapRelease
+        
+    let checkHeader (headers: AspNetCore.Http.IHeaderDictionary) headerToCheck (valueToFind: string) =
+        if headers.ContainsKey(headerToCheck)  then
+            headers.[headerToCheck].ToString().Contains(valueToFind)
+        else
+            false
+
+    let getResponsStatus = { StatusLine = Constants.serverStatus; Information = Constants.information }
 
 module DiskRequests =
-    let private dropboxDiskInstance = new Api.DropboxClient(Constants.tokendbx)
+    let private dropboxDiskInstance = new Api.DropboxClient(Tokens.DropboxToken)
     
-    let private yandexDiskInstance = new Client.Http.DiskHttpApi(Constants.tokendisk)
+    let private yandexDiskInstance = new Client.Http.DiskHttpApi(Tokens.YandexToken)
     
     let private memoize(f: 'a -> 'b) (filter: Dictionary<'a, 'b> -> unit) =
         let dict = new Dictionary<'a, 'b>()
@@ -60,9 +74,9 @@ module DiskRequests =
         with _ as eX -> {|Status = false; Link = ""; Info = "Can't get file from dropbox"|}
         
     let requestToDisk next (ctx: AspNetCore.Http.HttpContext) request =
-        match ctx.Request.Query.ContainsKey(Constants.qPathKey) with
+        match ctx.Request.Query.ContainsKey(ServerAPI.qPathKey) with
         |true ->
-            (ctx.Request.Query.[Constants.qPathKey].ToString()
+            (ctx.Request.Query.[ServerAPI.qPathKey].ToString()
              |> request
              |> json) next ctx
         |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
@@ -70,22 +84,12 @@ module DiskRequests =
     let requestToYandexDisk = memoize _requestToYandexDisk (fun dict -> printfn "%A" dict)
     let requestToDropboxDisk = memoize _requestToDropboxDisk (fun dict -> printfn "%A" dict)
 
-type ResponsStatus =
-    { StatusLine: bool
-      Information: string }
     
-let checkHeader (headers: AspNetCore.Http.IHeaderDictionary) headerToCheck (valueToFind: string) =
-    if headers.ContainsKey(headerToCheck)  then
-        headers.[headerToCheck].ToString().Contains(valueToFind)
-    else
-        false
-
-let getResponsStatus = { StatusLine = Constants.serverStatus; Information = Constants.information }
 
 module Pipes =
     let Auth = pipeline {
         plug (fun next ctx ->
-            match checkHeader ctx.Request.Headers Constants.Authorization Constants.Token with
+            match ServerAPI.checkHeader ctx.Request.Headers Constants.Authorization Tokens.ServerToken with
             | true -> next ctx
             | false -> (RequestErrors.UNAUTHORIZED "Bearer" "Server" "Authorization error.") next ctx)
     }
@@ -97,14 +101,14 @@ module Pipes =
         
 module Routers =
     let Server = router {
-        get "/status" (json getResponsStatus )
+        get "/status" (json ServerAPI.getResponsStatus )
     }
     
     let Modmap = router {
         get "/modmap" (fun next ctx ->
-            match ctx.Request.Query.ContainsKey(Constants.qModmapKey) with
-            |true when ctx.Request.Query.[Constants.qModmapKey].ToString().Contains(Constants.qModmapValueRelease) ->
-                (json <| Constants.modmap) next ctx
+            match ctx.Request.Query.ContainsKey(ServerAPI.qModmapKey) with
+            |true when ctx.Request.Query.[ServerAPI.qModmapKey].ToString().Contains(ServerAPI.qModmapValueRelease) ->
+                (json <| ServerAPI.modmap) next ctx
             |true -> (RequestErrors.BAD_REQUEST "Wrong request.") next ctx
             |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
             |_ -> (ServerErrors.NOT_IMPLEMENTED "What the fuck.") next ctx)
@@ -120,14 +124,14 @@ module Routers =
     }
     
     let Disk = router {
-        //pipe_through pAcceptJson
+        pipe_through Pipes.AcceptJson
         forward "" YandexDisk
         forward "" DropBoxDisk
     }
 
 let mainRouter = router {
     not_found_handler (text "Error: 404 wrong page")
-    //pipe_through pAuth
+    pipe_through Pipes.Auth
     forward "" Routers.Server
     forward "" Routers.Modmap
     forward "" Routers.Disk
