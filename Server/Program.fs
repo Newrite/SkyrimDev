@@ -16,199 +16,282 @@ open Microsoft.Extensions.Logging
 
 
 module Constants =
-    let [<Literal>] fileNameModMapRelease = "modmap.json"
-    let [<Literal>] fileNameServerStatus = @"E:\Programming\F#\SkyrimDev\Server\bin\Release\net5.0\win-x64\serverstatus.json"
-    let [<Literal>] fileNameLauncher = @"E:\Programming\F#\SkyrimDev\Launcher.exe"
-    let [<Literal>] Authorization = "Authorization"
-    
-    
-module ServerAPI =
-    
-    type ResponsStatus =
-        { statusline: bool
-          information: string }
-    
-    let [<Literal>] qDiskPathKey = "path"
-    let [<Literal>] qDiskYandexPathURL = "/yandex"
-    let [<Literal>] qDiskDropboxURL = "/dropbox"
-    
-    let [<Literal>] qModmapKey = "version"
-    let [<Literal>] qModmapValueRelease = "release"
-    let [<Literal>] qModmapURL = "/modmap"
-    
-    let [<Literal>] qServerStatusURL = "/status"
-    
-    let [<Literal>] qLauncherKey = "type"
-    let [<Literal>] qLauncherDownloadValue = "download"
-    let [<Literal>] qLauncherHASHValue = "hash"
-    let [<Literal>] qLauncherURL = "/launcher"
-    
-    
-    let modmap ()=
-        let deserializeFromFile fileName =
-            let text = File.ReadAllText(fileName)
-            text |> JsonSerializer.Deserialize<Dictionary<string, string>>
-        deserializeFromFile Constants.fileNameModMapRelease
-        
-    let launcherBinaryData ()=
-        File.ReadAllBytes(Constants.fileNameLauncher)
-        
-    let launcherHASH ()=
-        use sha = new SHA1Managed()
-        launcherBinaryData() |> sha.ComputeHash
-        
-        
-    let checkHeader (headers: IHeaderDictionary) headerToCheck (valueToFind: string) =
-        if headers.ContainsKey(headerToCheck)  then
-            headers.[headerToCheck].ToString().Contains(valueToFind)
-        else
-            false
+  [<Literal>]
+  let fileNameModMapRelease = "modmap.json"
 
-    let getResponsStatus () =
-        let deserializeFromFile fileName =
-            File.ReadAllText(fileName)
-            |>JsonSerializer.Deserialize<ResponsStatus>
-        deserializeFromFile Constants.fileNameServerStatus
+  [<Literal>]
+  let fileNameServerStatus =
+    @"E:\Programming\F#\SkyrimDev\Server\bin\Release\net5.0\win-x64\serverstatus.json"
+
+  [<Literal>]
+  let fileNameLauncher =
+    @"E:\Programming\F#\SkyrimDev\Launcher.exe"
+
+  [<Literal>]
+  let Authorization = "Authorization"
+
+
+module ServerAPI =
+
+  type ResponsStatus =
+    { statusline: bool
+      information: string }
+
+  [<Literal>]
+  let qDiskPathKey = "path"
+
+  [<Literal>]
+  let qDiskYandexPathURL = "/yandex"
+
+  [<Literal>]
+  let qDiskDropboxURL = "/dropbox"
+
+  [<Literal>]
+  let qModmapKey = "version"
+
+  [<Literal>]
+  let qModmapValueRelease = "release"
+
+  [<Literal>]
+  let qModmapURL = "/modmap"
+
+  [<Literal>]
+  let qServerStatusURL = "/status"
+
+  [<Literal>]
+  let qLauncherKey = "type"
+
+  [<Literal>]
+  let qLauncherDownloadValue = "download"
+
+  [<Literal>]
+  let qLauncherHASHValue = "hash"
+
+  [<Literal>]
+  let qLauncherURL = "/launcher"
+
+
+  let modmap () =
+    let deserializeFromFile fileName =
+      let text = File.ReadAllText(fileName)
+
+      text
+      |> JsonSerializer.Deserialize<Dictionary<string, string>>
+
+    deserializeFromFile Constants.fileNameModMapRelease
+
+  let launcherBinaryData () =
+    File.ReadAllBytes(Constants.fileNameLauncher)
+
+  let launcherHASH () =
+    use sha = new SHA1Managed()
+    launcherBinaryData () |> sha.ComputeHash
+
+
+  let checkHeader (headers: IHeaderDictionary) headerToCheck (valueToFind: string) =
+    if headers.ContainsKey(headerToCheck) then
+      headers.[headerToCheck]
+        .ToString()
+        .Contains(valueToFind)
+    else
+      false
+
+  let getResponsStatus () =
+    let deserializeFromFile fileName =
+      File.ReadAllText(fileName)
+      |> JsonSerializer.Deserialize<ResponsStatus>
+
+    deserializeFromFile Constants.fileNameServerStatus
 
 module DiskRequests =
-    let private dropboxDiskInstance = new Api.DropboxClient(Tokens.DropboxToken)
-    
-    let private yandexDiskInstance = new Client.Http.DiskHttpApi(Tokens.YandexToken)
-    
-    let private memoize(f: 'a -> 'b) =
-        let dict = new Dictionary<'a, 'b>()
-        
-        let memoizedFunc (input: 'a) =
-            match dict.TryGetValue(input) with
-            |true, x -> x
-            |false, _ ->
-                let answer = f input
-                dict.Add(input, answer)
-                answer
-                
-        memoizedFunc
-    
-    let private _requestToYandexDisk path =
-        try
-            let file = yandexDiskInstance.Files.GetDownloadLinkAsync(path)
-            file.Wait()
-            {|Status = true ;Link = file.Result.Href; Info = "Ok"|}
-        with _ as eX -> {|Status = false; Link = ""; Info = "Can't get file from yandex"|}
-        
-    let private _requestToDropboxDisk (path: string) =
-        try
-            let file = dropboxDiskInstance.Files.GetTemporaryLinkAsync(path)
-            file.Wait()
-            {|Status = true ;Link = file.Result.Link; Info = "Ok"|}
-        with _ as eX -> {|Status = false; Link = ""; Info = "Can't get file from dropbox"|}
-        
-    let requestToDisk next (ctx: HttpContext) request =
-        match ctx.Request.Query.ContainsKey(ServerAPI.qDiskPathKey) with
-        |true ->
-            (ctx.Request.Query.[ServerAPI.qDiskPathKey].ToString()
-             |> request
-             |> json) next ctx
-        |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
-        
-    let requestToYandexDisk = memoize _requestToYandexDisk
-    let requestToDropboxDisk = memoize _requestToDropboxDisk
+  let private dropboxDiskInstance =
+    new Api.DropboxClient(Tokens.DropboxToken)
 
-    
+  let private yandexDiskInstance =
+    new Client.Http.DiskHttpApi(Tokens.YandexToken)
+
+  let private memoize (f: 'a -> 'b) =
+    let dict = new Dictionary<'a, 'b>()
+
+    let memoizedFunc (input: 'a) =
+      match dict.TryGetValue(input) with
+      | true, x -> x
+      | false, _ ->
+          let answer = f input
+          dict.Add(input, answer)
+          answer
+
+    memoizedFunc
+
+  let private _requestToYandexDisk path =
+    try
+      let file =
+        yandexDiskInstance.Files.GetDownloadLinkAsync(path)
+
+      file.Wait()
+
+      {| Status = true
+         Link = file.Result.Href
+         Info = "Ok" |}
+    with eX ->
+      {| Status = false
+         Link = ""
+         Info = "Can't get file from yandex" |}
+
+  let private _requestToDropboxDisk (path: string) =
+    try
+      let file =
+        dropboxDiskInstance.Files.GetTemporaryLinkAsync(path)
+
+      file.Wait()
+
+      {| Status = true
+         Link = file.Result.Link
+         Info = "Ok" |}
+    with eX ->
+      {| Status = false
+         Link = ""
+         Info = "Can't get file from dropbox" |}
+
+  let requestToDisk next (ctx: HttpContext) request =
+    match ctx.Request.Query.ContainsKey(ServerAPI.qDiskPathKey) with
+    | true ->
+        (ctx.Request.Query.[ServerAPI.qDiskPathKey]
+          .ToString()
+         |> request
+         |> json)
+          next
+          ctx
+    | false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
+
+  let requestToYandexDisk = memoize _requestToYandexDisk
+  let requestToDropboxDisk = memoize _requestToDropboxDisk
+
+
 
 module Pipes =
-    let Auth = pipeline {
-        plug (fun next ctx ->
-            match ServerAPI.checkHeader ctx.Request.Headers Constants.Authorization Tokens.ServerToken with
-            | true -> next ctx
-            | false -> (RequestErrors.UNAUTHORIZED "Bearer" "Server" "Authorization error.") next ctx)
+  let Auth =
+    pipeline {
+      plug
+        (fun next ctx ->
+          match ServerAPI.checkHeader ctx.Request.Headers Constants.Authorization Tokens.ServerToken with
+          | true -> next ctx
+          | false -> (RequestErrors.UNAUTHORIZED "Bearer" "Server" "Authorization error.") next ctx)
     }
-    
-    let AcceptJson = pipeline {
-        plug acceptJson
-    } 
-        
-        
+
+  let AcceptJson = pipeline { plug acceptJson }
+
+
 module Routers =
-    
-    let (|ModmapRelease|LauncherDownload|LauncherHASH|NoQuery|BadRequest|) (query: IQueryCollection) =
-        
-        if query.ContainsKey(ServerAPI.qModmapKey) then
-            if query.[ServerAPI.qModmapKey].ToString().Contains(ServerAPI.qModmapValueRelease) then
-                ModmapRelease else BadRequest
-                
-        elif query.ContainsKey(ServerAPI.qLauncherKey) then
-            if query.[ServerAPI.qLauncherKey].ToString().Contains(ServerAPI.qLauncherHASHValue) then
-                LauncherHASH
-            elif query.[ServerAPI.qLauncherKey].ToString().Contains(ServerAPI.qLauncherDownloadValue) then
-                LauncherDownload else BadRequest
 
-        else NoQuery
-    
-    let Status = router {
-        get ServerAPI.qServerStatusURL (json  <| ServerAPI.getResponsStatus() )
-    }
-    
-    let Modmap = router {
-        get ServerAPI.qModmapURL (fun next ctx ->
-            match ctx.Request.Query with
-            |ModmapRelease ->
-                (json <| ServerAPI.modmap()) next ctx
-            |BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
-            |NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
-            |_ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
-    }
-    
-    
-    let YandexDisk = router {
-        get ServerAPI.qDiskYandexPathURL (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToYandexDisk)
-    }
-    
-    let DropBoxDisk = router {
-        get ServerAPI.qDiskDropboxURL (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToDropboxDisk)
+  let (|ModmapRelease|LauncherDownload|LauncherHASH|NoQuery|BadRequest|) (query: IQueryCollection) =
+
+    if query.ContainsKey(ServerAPI.qModmapKey) then
+      if query.[ServerAPI.qModmapKey]
+           .ToString()
+           .Contains(ServerAPI.qModmapValueRelease) then
+        ModmapRelease
+      else
+        BadRequest
+
+    elif query.ContainsKey(ServerAPI.qLauncherKey) then
+      if query.[ServerAPI.qLauncherKey]
+           .ToString()
+           .Contains(ServerAPI.qLauncherHASHValue) then
+        LauncherHASH
+      elif query.[ServerAPI.qLauncherKey]
+             .ToString()
+             .Contains(ServerAPI.qLauncherDownloadValue) then
+        LauncherDownload
+      else
+        BadRequest
+
+    else
+      NoQuery
+
+  let Status =
+    router { get ServerAPI.qServerStatusURL (json <| ServerAPI.getResponsStatus ()) }
+
+  let Modmap =
+    router {
+      get
+        ServerAPI.qModmapURL
+        (fun next ctx ->
+          match ctx.Request.Query with
+          | ModmapRelease -> (json <| ServerAPI.modmap ()) next ctx
+          | BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
+          | NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
+          | _ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
     }
 
-    let Launcher = router {
-        
-        get ServerAPI.qLauncherURL (fun next ctx ->
-            match ctx.Request.Query with
-            |LauncherHASH ->
-                (ServerAPI.launcherHASH()
-                 |>Seq.fold (fun acc elem -> acc + elem.ToString()) ""
-                 |> text) next ctx
-            |LauncherDownload -> ServerAPI.launcherBinaryData() |> ctx.WriteBytesAsync
-            |BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
-            |NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
-            |_ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
-    }
-    
-    let Disk = router {
-        pipe_through Pipes.AcceptJson
-        pipe_through Pipes.Auth
-        forward "" YandexDisk
-        forward "" DropBoxDisk
-    }
-    
 
-let mainRouter = router {
+  let YandexDisk =
+    router {
+      get
+        ServerAPI.qDiskYandexPathURL
+        (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToYandexDisk)
+    }
+
+  let DropBoxDisk =
+    router {
+      get
+        ServerAPI.qDiskDropboxURL
+        (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToDropboxDisk)
+    }
+
+  let Launcher =
+    router {
+
+      get
+        ServerAPI.qLauncherURL
+        (fun next ctx ->
+          match ctx.Request.Query with
+          | LauncherHASH ->
+              (ServerAPI.launcherHASH ()
+               |> Seq.fold (fun acc elem -> acc + elem.ToString()) ""
+               |> text)
+                next
+                ctx
+          | LauncherDownload ->
+              ServerAPI.launcherBinaryData ()
+              |> ctx.WriteBytesAsync
+          | BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
+          | NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
+          | _ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
+    }
+
+  let Disk =
+    router {
+      pipe_through Pipes.AcceptJson
+      pipe_through Pipes.Auth
+      forward "" YandexDisk
+      forward "" DropBoxDisk
+    }
+
+
+let mainRouter =
+  router {
     not_found_handler (text "Error: 404 wrong page")
     forward "" Routers.Launcher
     forward "" Routers.Status
     forward "" Routers.Modmap
     forward "" Routers.Disk
-}
+  }
 
 let configureLogging (logging: ILoggingBuilder) =
-    logging.SetMinimumLevel(LogLevel.None) |> ignore
+  logging.SetMinimumLevel(LogLevel.None) |> ignore
 
 
 [<EntryPoint>]
 let main _ =
-    let app = application {
-        url "http://0.0.0.0:3030"
-        use_router mainRouter
-        memory_cache
-        use_gzip
-        //logging configureLogging
+  let app =
+    application {
+      url "http://0.0.0.0:3030"
+      use_router mainRouter
+      memory_cache
+      use_gzip
+    //logging configureLogging
     }
-    run app
-    0
+
+  run app
+  0
