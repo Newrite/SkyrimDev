@@ -20,7 +20,10 @@ let exeFileName =
     .Substring(i + 1)
     .Replace(".dll", ".exe")
 
+
 let convert (byteArray: byte []) =
+  Log.TraceInf "Convert byte array"
+
   byteArray
   |> Array.fold (fun acc elem -> acc + elem.ToString()) ""
 
@@ -37,36 +40,32 @@ module Types =
 
 module SerDeser =
 
-  let serializeToFile (d: Dictionary<string, string>) fileName =
-    Log.TraceErr "Error!"
-
-    let opt =
-      JsonSerializerOptions(WriteIndented = true)
-
-    use writer =
-      File.Open(fileName, FileMode.Create)
-      |> StreamWriter
-
-    JsonSerializer.Serialize(d, opt) |> writer.Write
-    writer.Flush()
-
   let deserializeFromFile fileName =
+    Log.TraceInf
+    <| sprintf "Deserialize from file: %s" fileName
+
     File.ReadAllText(fileName)
     |> JsonSerializer.Deserialize<Dictionary<string, string>>
 
   let deserializeRespons<'a> respons =
-    printfn "%A" respons
+    Log.TraceInf
+    <| sprintf "Deserialize respons: %A" respons
 
     match respons with
-    | Ok (ok) ->
+    | Ok ok ->
         try
 
           Json.deserialize<'a> ok |> Ok
         with :? JsonDeserializationError as eX ->
+          Log.TraceExc
+          <| sprintf "Deserialize error Err:%s %s" eX.Message eX.StackTrace
+
+          Log.TraceErr
+          <| sprintf "Deserialize error Err:%s" eX.Message
 
           Error
-          <| sprintf "deserializeRespons<'a> JsonDeserializationError Err:%s P: %A" eX.Message respons
-    | Error (err) ->
+          <| sprintf "Deserialize error Err:%s" eX.Message
+    | Error err ->
 
         Error err
 
@@ -74,7 +73,7 @@ module SerDeser =
 module Server =
 
   [<Literal>]
-  let private serverUrl = @"http://localhost:3030"
+  let private serverUrl = @"http://api.juliarepository.space"
 
   [<Literal>]
   let private dropboxUrl = serverUrl + "/dropbox"
@@ -99,6 +98,7 @@ module Server =
       "Authorization", tokenServer ]
 
   let private getYandexLink pathToFile =
+    Log.TraceInf "Try get link from yandex disk"
 
     try
       let url = yandexUrl
@@ -106,10 +106,17 @@ module Server =
       Http.RequestString(url, httpMethod = HttpMethod.Get, query = [ "path", pathToFile ], headers = headers ())
       |> Ok
     with :? WebException as eX ->
+      Log.TraceExc
+      <| sprintf "Can't get link from yandex disk Err:%s %s" eX.Message eX.StackTrace
 
-      Error <| sprintf "%s" eX.Message
+      Log.TraceErr
+      <| sprintf "Can't get link from yandex disk Err:%s" eX.Message
+
+      Error
+      <| sprintf "Can't get link from yandex disk Err:%s" eX.Message
 
   let private getDropboxLink pathToFile =
+    Log.TraceInf "Try get link from dropbox disk"
 
     try
       let url = dropboxUrl
@@ -117,11 +124,21 @@ module Server =
       Http.RequestString(url, httpMethod = HttpMethod.Get, query = [ "path", pathToFile ], headers = headers ())
       |> Ok
     with :? WebException as eX ->
+      Log.TraceExc
+      <| sprintf "Can't get link from dropbox disk Err:%s %s" eX.Message eX.StackTrace
 
-      Error <| sprintf "%s" eX.Message
+      Log.TraceErr
+      <| sprintf "Can't get link from dropbox disk Err:%s" eX.Message
+
+      Error
+      <| sprintf "Can't get link from dropbox disk Err:%s" eX.Message
 
   let getModmapFromServer () =
+    Log.TraceInf "Try get modmap from server"
+
     let deserialize (text: string) =
+      Log.TraceInf "Deserialize modmap"
+
       text
       |> JsonSerializer.Deserialize<Dictionary<string, string>>
 
@@ -132,10 +149,17 @@ module Server =
       |> deserialize
       |> Ok
     with :? WebException as eX ->
+      Log.TraceExc
+      <| sprintf "Can't get modmap from server Err:%s %s" eX.Message eX.StackTrace
 
-      Error <| sprintf "%s" eX.Message
+      Log.TraceErr
+      <| sprintf "Can't get modmap from server Err:%s" eX.Message
+
+      Error
+      <| sprintf "Can't get modmap from server Err:%s" eX.Message
 
   let getServerStatus () =
+    Log.TraceInf "Try get server status"
 
     try
       let url = serverStatusURL
@@ -143,8 +167,14 @@ module Server =
       Http.RequestString(url, httpMethod = HttpMethod.Get, query = [], headers = headers ())
       |> Ok
     with :? WebException as eX ->
+      Log.TraceExc
+      <| sprintf "Can't get server status Err:%s %s" eX.Message eX.StackTrace
 
-      Error <| sprintf "%s" eX.Message
+      Log.TraceErr
+      <| sprintf "Can't get server status Err:%s" eX.Message
+
+      Error
+      <| sprintf "Can't get server status Err:%s" eX.Message
 
 
   let updateLauncher serverRespons =
@@ -284,43 +314,91 @@ module Server =
     |> GetLauncherStreamHTTP
     |> TryDownloadLauncher
 
-  let private downloadFile (url: string) (toPath: string) (sumSHA: string) =
-    use sha = new SHA1Managed()
+  let private downloadFile (url: string) (downloadPath: string) (sumFromServer: string) =
 
-    let pathWithoutFile =
-      let i = toPath.LastIndexOf('\\')
-      toPath.Substring(0, i)
+    Log.TraceInf
+    <| sprintf "Get link, start download file: %s" downloadPath
 
-    Directory.CreateDirectory(pathWithoutFile)
-    |> printfn "%A"
+    let checkSum firstSum secondSum =
+      Log.TraceInf "Start check files sum..."
+      firstSum = secondSum
 
-    use wc = new WebClient()
-    wc.DownloadFile(System.Uri(url), toPath + ".temp")
-    File.Delete(toPath)
-    File.Move(toPath + ".temp", toPath)
+    let directoryPath (filePath: string) =
+      let i = filePath.LastIndexOf('\\')
+      filePath.Substring(0, i)
 
-    let newSumSHA =
+    let createDirectory path =
+      Directory.CreateDirectory(path)
+      |> sprintf "Create directory: %A"
+      |> Log.TraceInf
+
+      downloadPath
+
+    let startDownloadFile path =
+      use wc = new WebClient()
+
+      Log.TraceInf
+      <| sprintf "Start download file: %s.temp" path
+
+      wc.DownloadFile(System.Uri(url), path + ".temp")
+      Log.TraceInf <| sprintf "Delete old file: %s" path
+      File.Delete(path)
+
+      Log.TraceInf
+      <| sprintf "Rename new file: %s.temp -> %s" path path
+
+      File.Move(path + ".temp", path)
+      path
+
+    let GetDownloadFileSum path =
+      use sha = new SHA1Managed()
+
+      Log.TraceInf
+      <| sprintf "Get new file SHA1: %s" path
+
       convert
-      <| sha.ComputeHash(File.ReadAllBytes(toPath))
+      <| sha.ComputeHash(File.ReadAllBytes(path))
 
-    if newSumSHA <> sumSHA then
-      printfn "ALARM bad download"
+    let ComposeOfDownload =
+      directoryPath
+      >> createDirectory
+      >> startDownloadFile
+      >> GetDownloadFileSum
+      >> checkSum
+
+    match ComposeOfDownload downloadPath sumFromServer with
+    | true ->
+        Log.TraceInf
+        <| sprintf "Successful download: %s" downloadPath
+    | false ->
+        Log.TraceErr
+        <| sprintf "SHA1 does not match, try again download %s" downloadPath
+
+        ComposeOfDownload downloadPath sumFromServer
+        |> sprintf "Status of again download %s: %b" downloadPath
+        |> Log.TraceInf
 
   let startDownload pathToFile fullFilePath summSHA =
+    Log.TraceInf
+    <| sprintf "lets start get link for %s" pathToFile
+
     getYandexLink pathToFile
     |> SerDeser.deserializeRespons<Types.Respons>
     |> function
-    | Ok (resp) ->
+    | Ok resp ->
         if resp.status then
           downloadFile resp.link fullFilePath summSHA
-          Ok "Download successful"
+          Ok "Go download another file"
         else
-          Error "Status not ok"
-    | Error (err) -> Error err
+          Error
+          <| sprintf "Problem with get link from disk, server info: %s" resp.info
+    | Error err -> Error err
 
 
 module Launcher =
   let private files sPath =
+    Log.TraceInf "Get all files in mods\\!PS"
+
     let rec filesUnder (basePath: string) =
       seq {
         if basePath.Contains("mods\\!PS") then
@@ -333,6 +411,7 @@ module Launcher =
     filesUnder sPath
 
   let modmapClient sPath =
+    Log.TraceInf "Create client modmap"
     let dict = Dictionary<string, string>()
     use sha = new SHA1Managed()
 
@@ -340,62 +419,75 @@ module Launcher =
     |> Seq.map (fun x -> (x, File.ReadAllBytes(x)))
     |> Seq.iter (fun (x, y) -> dict.Add(x.Replace(sPath, "").Replace('\\', '/'), (convert <| sha.ComputeHash(y))))
 
+    Log.TraceInf "Alright, we get SHA1 of all files"
     dict
 
-  let compression (mapServer: Dictionary<string, string>) (mapClient: Dictionary<string, string>) =
+  let RealWork (mapServer: Dictionary<string, string>) (mapClient: Dictionary<string, string>) =
+
+    Log.TraceInf "Real work starts now"
 
     let fullPath (sKey: string) = currentPath + sKey.Replace('/', '\\')
 
-    let checkToDownload =
-      let downloadSeq =
-        [ for KeyValue (k, v) in mapServer do
-            match mapClient.ContainsKey(k) with
-            | true ->
-                let check = v = mapClient.[k]
+    let listForDownload =
+      [ for KeyValue (k, v) in mapServer do
+          match mapClient.ContainsKey(k) with
+          | true ->
+              let check = v = mapClient.[k]
 
-                if check then
-                  printfn "Все в порядке"
-                else
-                  printfn "Сумма файлов несовпадает. Вызываем асинхронную функцию на скачивание в директорию %s"
-                  <| fullPath k
+              if check then
+                Log.TraceInf <| sprintf "File %s... Ok" k
+              else
+                Log.TraceInf
+                <| sprintf "File %s... sum dosent match, will download in %s" k (fullPath k)
 
-                  yield (k, v)
-            | false ->
-                printfn "Такого файла нет. Добавляем в пул на скачивание в директорию %s"
-                <| fullPath k
+                yield (k, v)
+          | false ->
+              Log.TraceInf
+              <| sprintf "File %s... don't found, will download in %s" k (fullPath k)
 
-                yield (k, v) ]
+              yield (k, v) ]
+
+    Log.TraceInf
+    <| sprintf "Files to downloads: %d" listForDownload.Length
+
+    let downloadParallel (filesList: (string * string) list) =
+      Log.TraceInf
+      <| sprintf "Start downloads, num of maximum threads: %d" 7
 
       let parallelOption =
         ParallelOptions(MaxDegreeOfParallelism = 7)
 
-      printfn "Всего файлов надо скачать: %d" downloadSeq.Length
-
       Parallel.ForEach(
-        downloadSeq,
+        filesList,
         parallelOption,
         (fun (file, sum) ->
           Server.startDownload file (fullPath file) sum
           |> function
-          | Ok (resp) -> printfn "%s" resp
-          | Error (err) -> printfn "%s" err)
+          | Ok resp -> Log.TraceInf <| sprintf "%s" resp
+          | Error err -> Log.TraceErr <| sprintf "%s" err)
       )
 
-    let checkToDelete =
+    let deleteFiles () =
+      Log.TraceInf "Check files to delete"
+
       for k in mapClient.Keys do
         match mapServer.ContainsKey(k) with
-        | true -> printfn "Все хорошо, такой файл есть в мапе сервера."
+        | true ->
+            Log.TraceInf
+            <| sprintf "File %s... ok, file exists in server modmap" k
         | false ->
-            printfn "Такого файла в мапе сервера нет, запускаем функцию удаления в путь %s"
-            <| fullPath k
+            Log.TraceInf
+            <| sprintf "File %s... no found in server modmap, delete in: %s" k (fullPath k)
 
             File.Delete(fullPath k)
 
-    checkToDownload |> printfn "%A"
-    checkToDelete
+    downloadParallel listForDownload |> ignore
+    deleteFiles ()
 
 [<EntryPoint>]
 let main _ =
+  Log.TraceDeb
+  <| sprintf "Start info currentPath:%s exeFileName: %s" currentPath exeFileName
   System.Threading.Thread.Sleep(3000)
 
   Server.getServerStatus ()
@@ -407,15 +499,15 @@ let main _ =
       | true ->
           Server.getModmapFromServer ()
           |> function
-          | Ok (modmapServer) ->
-              Launcher.compression modmapServer (Launcher.modmapClient currentPath)
+          | Ok modmapServer ->
+              Launcher.RealWork modmapServer (Launcher.modmapClient currentPath)
               0
-          | Error (err) ->
+          | Error err ->
               printfn "%s" err
               System.Console.ReadKey() |> ignore
               1
       | false -> 2
-  | Error (err) ->
+  | Error err ->
       printfn "%s" err
       System.Console.ReadKey() |> ignore
       3

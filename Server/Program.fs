@@ -21,11 +21,11 @@ module Constants =
 
   [<Literal>]
   let fileNameServerStatus =
-    @"E:\Programming\F#\SkyrimDev\Server\bin\Release\net5.0\win-x64\serverstatus.json"
+    @"serverstatus.json"
 
   [<Literal>]
   let fileNameLauncher =
-    @"E:\Programming\F#\SkyrimDev\Launcher.exe"
+    @"Launcher.exe"
 
   [<Literal>]
   let Authorization = "Authorization"
@@ -111,14 +111,24 @@ module DiskRequests =
     new Client.Http.DiskHttpApi(Tokens.YandexToken)
 
   let private memoize (f: 'a -> 'b) =
-    let dict = new Dictionary<'a, 'b>()
+    let dict = Dictionary<'a, 'b * int64>()
+    let time () = System.DateTime.Now.Ticks / 10000000L
 
     let memoizedFunc (input: 'a) =
+      if dict.ContainsKey(input) then
+        let lastTime = snd dict.[input]
+
+        if (time () - lastTime) > 10800L then
+          dict.Remove(input) |> ignore
+
       match dict.TryGetValue(input) with
-      | true, x -> x
+      | true, x -> fst x
       | false, _ ->
           let answer = f input
-          dict.Add(input, answer)
+
+          dict.TryAdd(input, (answer, time ()))
+          |> printfn "Try add key to memory %b"
+
           answer
 
     memoizedFunc
@@ -166,8 +176,6 @@ module DiskRequests =
 
   let requestToYandexDisk = memoize _requestToYandexDisk
   let requestToDropboxDisk = memoize _requestToDropboxDisk
-
-
 
 module Pipes =
   let Auth =
