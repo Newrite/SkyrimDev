@@ -22,7 +22,6 @@ let exeFileName =
 
 
 let convert (byteArray: byte []) =
-  Log.TraceInf "Convert byte array"
 
   byteArray
   |> Array.fold (fun acc elem -> acc + elem.ToString()) ""
