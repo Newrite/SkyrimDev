@@ -5,7 +5,7 @@
         <TargetFramework>net5.0</TargetFramework>
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
-        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <RuntimeIdentifier>linux-arm</RuntimeIdentifier>
         <PublishTrimmed>true</PublishTrimmed>
         <PublishReadyToRun>false</PublishReadyToRun>
     </PropertyGroup>
