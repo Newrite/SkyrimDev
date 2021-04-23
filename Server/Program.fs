@@ -2,11 +2,12 @@
 //builds for arm orange pi pc+
 //for build on other platform edit TWBot.fsproj
 
+open Microsoft.AspNetCore.Http
 open Saturn
 open Giraffe
-open Microsoft
 open System.IO
 open System.Collections.Generic
+open System.Security.Cryptography
 open System.Text.Json
 open Dropbox
 open Server
@@ -16,33 +17,58 @@ open Microsoft.Extensions.Logging
 
 module Constants =
     let [<Literal>] fileNameModMapRelease = "modmap.json"
-    let [<Literal>] serverStatus = true
-    let [<Literal>] information = "Already ok"
+    let [<Literal>] fileNameServerStatus = @"E:\Programming\F#\SkyrimDev\Server\bin\Release\net5.0\win-x64\serverstatus.json"
+    let [<Literal>] fileNameLauncher = @"E:\Programming\F#\SkyrimDev\Launcher.exe"
     let [<Literal>] Authorization = "Authorization"
     
     
 module ServerAPI =
     
     type ResponsStatus =
-        { StatusLine: bool
-          Information: string }
+        { statusline: bool
+          information: string }
     
-    let [<Literal>] qPathKey = "path"
+    let [<Literal>] qDiskPathKey = "path"
+    let [<Literal>] qDiskYandexPathURL = "/yandex"
+    let [<Literal>] qDiskDropboxURL = "/dropbox"
+    
     let [<Literal>] qModmapKey = "version"
     let [<Literal>] qModmapValueRelease = "release"
+    let [<Literal>] qModmapURL = "/modmap"
+    
+    let [<Literal>] qServerStatusURL = "/status"
+    
+    let [<Literal>] qLauncherKey = "type"
+    let [<Literal>] qLauncherDownloadValue = "download"
+    let [<Literal>] qLauncherHASHValue = "hash"
+    let [<Literal>] qLauncherURL = "/launcher"
+    
+    
     let modmap ()=
         let deserializeFromFile fileName =
             let text = File.ReadAllText(fileName)
             text |> JsonSerializer.Deserialize<Dictionary<string, string>>
         deserializeFromFile Constants.fileNameModMapRelease
         
-    let checkHeader (headers: AspNetCore.Http.IHeaderDictionary) headerToCheck (valueToFind: string) =
+    let launcherBinaryData ()=
+        File.ReadAllBytes(Constants.fileNameLauncher)
+        
+    let launcherHASH ()=
+        use sha = new SHA1Managed()
+        launcherBinaryData() |> sha.ComputeHash
+        
+        
+    let checkHeader (headers: IHeaderDictionary) headerToCheck (valueToFind: string) =
         if headers.ContainsKey(headerToCheck)  then
             headers.[headerToCheck].ToString().Contains(valueToFind)
         else
             false
 
-    let getResponsStatus = { StatusLine = Constants.serverStatus; Information = Constants.information }
+    let getResponsStatus () =
+        let deserializeFromFile fileName =
+            File.ReadAllText(fileName)
+            |>JsonSerializer.Deserialize<ResponsStatus>
+        deserializeFromFile Constants.fileNameServerStatus
 
 module DiskRequests =
     let private dropboxDiskInstance = new Api.DropboxClient(Tokens.DropboxToken)
@@ -69,17 +95,17 @@ module DiskRequests =
             {|Status = true ;Link = file.Result.Href; Info = "Ok"|}
         with _ as eX -> {|Status = false; Link = ""; Info = "Can't get file from yandex"|}
         
-    let private _requestToDropboxDisk path =
+    let private _requestToDropboxDisk (path: string) =
         try
-            let file = dropboxDiskInstance.Files.GetTemporaryLinkAsync("/"+path)
+            let file = dropboxDiskInstance.Files.GetTemporaryLinkAsync(path)
             file.Wait()
             {|Status = true ;Link = file.Result.Link; Info = "Ok"|}
         with _ as eX -> {|Status = false; Link = ""; Info = "Can't get file from dropbox"|}
         
-    let requestToDisk next (ctx: AspNetCore.Http.HttpContext) request =
-        match ctx.Request.Query.ContainsKey(ServerAPI.qPathKey) with
+    let requestToDisk next (ctx: HttpContext) request =
+        match ctx.Request.Query.ContainsKey(ServerAPI.qDiskPathKey) with
         |true ->
-            (ctx.Request.Query.[ServerAPI.qPathKey].ToString()
+            (ctx.Request.Query.[ServerAPI.qDiskPathKey].ToString()
              |> request
              |> json) next ctx
         |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
@@ -103,39 +129,70 @@ module Pipes =
         
         
 module Routers =
-    let Server = router {
-        get "/status" (json ServerAPI.getResponsStatus )
+    
+    let (|ModmapRelease|LauncherDownload|LauncherHASH|NoQuery|BadRequest|) (query: IQueryCollection) =
+        
+        if query.ContainsKey(ServerAPI.qModmapKey) then
+            if query.[ServerAPI.qModmapKey].ToString().Contains(ServerAPI.qModmapValueRelease) then
+                ModmapRelease else BadRequest
+                
+        elif query.ContainsKey(ServerAPI.qLauncherKey) then
+            if query.[ServerAPI.qLauncherKey].ToString().Contains(ServerAPI.qLauncherHASHValue) then
+                LauncherHASH
+            elif query.[ServerAPI.qLauncherKey].ToString().Contains(ServerAPI.qLauncherDownloadValue) then
+                LauncherDownload else BadRequest
+
+        else NoQuery
+    
+    let Status = router {
+        get ServerAPI.qServerStatusURL (json  <| ServerAPI.getResponsStatus() )
     }
     
     let Modmap = router {
-        get "/modmap" (fun next ctx ->
-            match ctx.Request.Query.ContainsKey(ServerAPI.qModmapKey) with
-            |true when ctx.Request.Query.[ServerAPI.qModmapKey].ToString().Contains(ServerAPI.qModmapValueRelease) ->
+        get ServerAPI.qModmapURL (fun next ctx ->
+            match ctx.Request.Query with
+            |ModmapRelease ->
                 (json <| ServerAPI.modmap()) next ctx
-            |true -> (RequestErrors.BAD_REQUEST "Wrong request.") next ctx
-            |false -> (RequestErrors.METHOD_NOT_ALLOWED "no query") next ctx
-            |_ -> (ServerErrors.NOT_IMPLEMENTED "What the fuck.") next ctx)
+            |BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
+            |NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
+            |_ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
     }
     
     
     let YandexDisk = router {
-        get "/yandex" (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToYandexDisk)
+        get ServerAPI.qDiskYandexPathURL (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToYandexDisk)
     }
     
     let DropBoxDisk = router {
-        get "/dropbox" (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToDropboxDisk)
+        get ServerAPI.qDiskDropboxURL (fun next ctx -> DiskRequests.requestToDisk next ctx DiskRequests.requestToDropboxDisk)
+    }
+
+    let Launcher = router {
+        
+        get ServerAPI.qLauncherURL (fun next ctx ->
+            match ctx.Request.Query with
+            |LauncherHASH ->
+                (ServerAPI.launcherHASH()
+                 |>Seq.fold (fun acc elem -> acc + elem.ToString()) ""
+                 |> text) next ctx
+            |LauncherDownload -> ServerAPI.launcherBinaryData() |> ctx.WriteBytesAsync
+            |BadRequest -> RequestErrors.BAD_REQUEST "Wrong request." next ctx
+            |NoQuery -> RequestErrors.METHOD_NOT_ALLOWED "no query" next ctx
+            |_ -> ServerErrors.NOT_IMPLEMENTED "What the fuck." next ctx)
     }
     
     let Disk = router {
         pipe_through Pipes.AcceptJson
+        pipe_through Pipes.Auth
         forward "" YandexDisk
         forward "" DropBoxDisk
     }
+    
 
 let mainRouter = router {
     not_found_handler (text "Error: 404 wrong page")
-    pipe_through Pipes.Auth
-    forward "" Routers.Server
+    forward "" Routers.Launcher
+    forward "" Routers.Status
     forward "" Routers.Modmap
     forward "" Routers.Disk
 }
@@ -143,12 +200,15 @@ let mainRouter = router {
 let configureLogging (logging: ILoggingBuilder) =
     logging.SetMinimumLevel(LogLevel.None) |> ignore
 
-let app = application {
-    url "http://0.0.0.0:3030"
-    use_router mainRouter
-    memory_cache
-    use_gzip
-    //logging configureLogging
-}
 
-run app
+[<EntryPoint>]
+let main _ =
+    let app = application {
+        url "http://0.0.0.0:3030"
+        use_router mainRouter
+        memory_cache
+        use_gzip
+        //logging configureLogging
+    }
+    run app
+    0

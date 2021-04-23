@@ -27,4 +27,10 @@
       <PackageReference Include="FSharp.Json" Version="0.4.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="CLogger, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\..\CLogger\bin\Release\net5.0\CLogger.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

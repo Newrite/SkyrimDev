@@ -6,21 +6,22 @@ open FSharp.Data
 open FSharp.Json
 open System.Text.Json
 open System.Threading.Tasks
-open Microsoft.VisualBasic
+open System.Reflection
+open System.Diagnostics
+open CLogger
 
-let serializeToFile (d: Dictionary<string, string>) fileName =
-    let opt = JsonSerializerOptions(WriteIndented = true)
-    use writer = File.Open(fileName, FileMode.Create) |> StreamWriter
-    JsonSerializer.Serialize(d, opt) |> writer.Write
-    writer.Flush()
+let currentPath = Directory.GetCurrentDirectory()
 
-let deserializeFromFile fileName =
-    File.ReadAllText(fileName)
-    |>JsonSerializer.Deserialize<Dictionary<string, string>>
-
-let path = Directory.GetCurrentDirectory()
-
-module Downloads =
+let exeFileName =
+    let pathToFile = Assembly.GetExecutingAssembly().Location
+    let i = pathToFile.LastIndexOf('\\')
+    pathToFile.Substring(i+1).Replace(".dll", ".exe")
+    
+let convert (byteArray: byte[])=
+        byteArray
+        |>Array.fold (fun acc elem -> acc + elem.ToString()) ""
+    
+module Types =
     
     type Respons = {
         info: string
@@ -28,19 +29,26 @@ module Downloads =
         status: bool
     }
     
-    let [<Literal>] private serverUrl = @"http://api.juliarepository.space"
+    type ResponsStatus = {
+        statusline: bool
+        information: string
+    }
+
+module SerDeser =
     
-    let [<Literal>] private dropboxUrl = serverUrl + "/dropbox"
-    let [<Literal>] private yandexUrl = serverUrl + "/yandex"
-    let [<Literal>] private modmapUrl = serverUrl + "/modmap"
-    let [<Literal>] private tokenServer = "Bearer OMEGALULISPOWER!"
+    let serializeToFile (d: Dictionary<string, string>) fileName =
+        Log.TraceErr "Error!"
+        let opt = JsonSerializerOptions(WriteIndented = true)
+        use writer = File.Open(fileName, FileMode.Create) |> StreamWriter
+        JsonSerializer.Serialize(d, opt) |> writer.Write
+        writer.Flush()
     
-    let private headers () =
-        [ "Accept", "application/json"
-          "Authorization", tokenServer ]
-        
-    let private deserializeRespons<'a> respons =
+    let deserializeFromFile fileName =
+        File.ReadAllText(fileName)
+        |>JsonSerializer.Deserialize<Dictionary<string, string>>
     
+    let deserializeRespons<'a> respons =
+        printfn "%A" respons
         match respons with
         | Ok (ok) ->
             try
@@ -53,6 +61,21 @@ module Downloads =
         | Error (err) ->
     
             Error err
+
+
+module Server =
+    
+    let [<Literal>] private serverUrl = @"http://localhost:3030"
+    let [<Literal>] private dropboxUrl = serverUrl + "/dropbox"
+    let [<Literal>] private yandexUrl = serverUrl + "/yandex"
+    let [<Literal>] private modmapUrl = serverUrl + "/modmap"
+    let [<Literal>] private serverStatusURL = serverUrl + "/status"
+    let [<Literal>] private LauncherURL = serverUrl + "/launcher"
+    let [<Literal>] private tokenServer = "Bearer OMEGALULISPOWER!"
+    
+    let private headers () =
+        [ "Accept", "application/json"
+          "Authorization", tokenServer ]
         
     let private getYandexLink pathToFile =
 
@@ -93,9 +116,126 @@ module Downloads =
             Error
             <| sprintf "%s" eX.Message
             
-    let convert (byteArray: byte[])=
-            byteArray
-            |>Array.fold (fun acc elem -> acc + elem.ToString()) ""
+    let getServerStatus() =
+            
+        try
+            let url = serverStatusURL
+
+            Http.RequestString(url, httpMethod = HttpMethod.Get, query = [], headers = headers ())
+            |> Ok
+        with :? WebException as eX ->
+
+            Error
+            <| sprintf "%s" eX.Message
+            
+            
+    let updateLauncher serverRespons =
+        
+        Log.TraceInf "Start check launcher for update"
+        
+        let renameAndDeleteOlderFiles() =
+            if (File.Exists(exeFileName) |> not) && File.Exists(exeFileName+".temp") then
+                Log.TraceDeb <| sprintf "Rename %s to %s" exeFileName exeFileName+".temp"
+                File.Move(exeFileName+".temp", exeFileName)
+                
+            if File.Exists(exeFileName+".temp") then
+                Log.TraceDeb <| sprintf "Delete %s" exeFileName+".temp"
+                File.Delete(exeFileName+".temp")
+                
+            if File.Exists(exeFileName+".delete") then
+                Log.TraceDeb <| sprintf "Delete %s" exeFileName+".delete"
+                File.Delete(exeFileName+".delete")
+        
+        let GetLauncherSumFromServer (serverResult: Result<Types.ResponsStatus,string>) =
+            
+            Log.TraceInf "Get launcher hash sum from server"
+            
+            match serverResult with
+            |Ok respons ->
+                if respons.statusline then
+                    try
+                        Log.TraceInf "Start request for hash sum"
+                        let url = LauncherURL
+            
+                        Http.RequestString(url, httpMethod = HttpMethod.Get, query = ["type", "hash"], headers = headers ())
+                        |> Ok
+                    with :? WebException as eX ->
+                        
+                        Log.TraceErr <| sprintf "Error when try to get launcher hash from server: %s" eX.Message
+                        Log.TraceExc <| eX.StackTrace
+                        Error <| sprintf "Error when try to get launcher hash from server: %s" eX.Message
+                else
+                    Log.TraceErr <| sprintf "Server send he not OK"
+                    Error "Server send he not OK"
+            |Error err -> Error err
+                              
+        let compareLaunchersSum hash =
+            
+            Log.TraceInf "Compare launchers hash sum"
+            
+            match hash with
+            |Ok hashServer ->
+                use sha = new SHA1Managed()
+                let clientSum =
+                    File.ReadAllBytes(exeFileName)
+                    |>sha.ComputeHash
+                    |> convert
+                Log.TraceDeb <| sprintf "ServerSide HASH: %s ClientSideHASH: %s" hashServer clientSum
+                hashServer = clientSum |> Ok
+            |Error err -> Error err
+            
+        let GetLauncherStreamHTTP checkHashResult =
+            
+            Log.TraceInf "Check for launcher stream from server trough HTTPClient"
+            
+            match checkHashResult with
+            |Ok check ->
+                if not check then
+                    try
+                        Log.TraceInf "Start get launcher stream from server trough HTTPClient"
+                        let url = LauncherURL
+            
+                        Http.RequestStream(url, httpMethod = HttpMethod.Get, query = ["type", "download"], headers = headers ())
+                        |> Some |> Ok
+                    with :? WebException as eX ->
+                        Log.TraceErr
+                        <| sprintf "Error when try to get launcher stream from server trough HTTPClient: %s" eX.Message
+                        Log.TraceExc <| eX.StackTrace
+                        Error
+                        <| sprintf "Error when try to get launcher stream from server trough HTTPClient: %s" eX.Message
+                else
+                    Log.TraceInf "Update don't required, all ok"
+                    Ok None
+            |Error err -> Error err
+            
+        
+        let TryDownloadLauncher (responsStream: Result<HttpResponseWithStream option,string>) =
+            
+            Log.TraceInf "Check for required download launcher"
+            
+            match responsStream with
+            |Ok stream ->
+                if stream.IsSome then
+                    Log.TraceInf "Launcher need update, start stream to file..."
+                    use outputFile = new FileStream(exeFileName+".temp", FileMode.Create)
+                    stream.Value.ResponseStream.CopyTo(outputFile)
+                    outputFile.Flush()
+                    outputFile.Dispose()
+                    outputFile.Close()
+                    File.Move(exeFileName, exeFileName+".delete")
+                    Log.TraceInf "Launcher successful update, it start new version automatically"
+                    Process.Start(exeFileName+".temp") |> sprintf "Start new process: %A" |> Log.TraceInf
+                    Ok false
+                else
+                    Log.TraceInf "Download not required, all ok"
+                    Ok true
+            |Error err -> Error err
+        
+        renameAndDeleteOlderFiles()
+        GetLauncherSumFromServer serverRespons
+        |>compareLaunchersSum
+        |>GetLauncherStreamHTTP
+        |>TryDownloadLauncher
             
     let private downloadFile (url: string) (toPath: string) (sumSHA: string) =
         use sha = new SHA1Managed()
@@ -106,13 +246,13 @@ module Downloads =
         use wc = new WebClient()
         wc.DownloadFile(System.Uri(url), toPath+".temp")
         File.Delete(toPath)
-        FileSystem.Rename(toPath+".temp", toPath)
+        File.Move(toPath+".temp", toPath)
         let newSumSHA = convert <| sha.ComputeHash(File.ReadAllBytes(toPath))
         if newSumSHA <> sumSHA then printfn "ALARM bad download"
         
     let startDownload pathToFile fullFilePath summSHA =
         getYandexLink pathToFile
-        |>deserializeRespons<Respons>
+        |>SerDeser.deserializeRespons<Types.Respons>
         |>function
         | Ok (resp) ->
             if resp.status then
@@ -122,74 +262,85 @@ module Downloads =
         | Error (err) -> Error err
 
 
-
-//Downloads.getModmapFromServer()
-//|>function
-//|Ok(dict) -> for KeyValue(k, v) in dict do
-//        printfn "key = %s value = %s" k v
-//|Error(err) -> printfn "%s" err
-
-let files sPath =
-    let rec filesUnder (basePath: string) =
-        seq {
-            //printfn "%s" basePath
-            if basePath.Contains("mods\\!PS") then
-                yield! Directory.GetFiles(basePath)
-            for subDir in Directory.GetDirectories(basePath) do
-                yield! filesUnder subDir
-        }
-    filesUnder sPath
+module Launcher =
+    let private files sPath =
+        let rec filesUnder (basePath: string) =
+            seq {
+                if basePath.Contains("mods\\!PS") then
+                    yield! Directory.GetFiles(basePath)
+                for subDir in Directory.GetDirectories(basePath) do
+                    yield! filesUnder subDir
+            }
+        filesUnder sPath
+            
+    let modmapClient sPath =
+        let dict = Dictionary<string, string>()
+        use sha = new SHA1Managed()
+        files sPath
+        |> Seq.map (fun x -> (x, File.ReadAllBytes(x)))
+        |> Seq.iter (fun (x, y) -> dict.Add(x.Replace(sPath, "").Replace('\\','/'), (convert <| sha.ComputeHash(y))))
+        dict
+    
+    let compression (mapServer: Dictionary<string, string>) (mapClient: Dictionary<string, string>) =
         
-let seqHASH sPath =
-    let dict = Dictionary<string, string>()
-    use sha = new SHA1Managed()
-    files sPath
-    |> Seq.map (fun x -> (x, File.ReadAllBytes(x)))
-    |> Seq.iter (fun (x, y) -> dict.Add(x.Replace(sPath, "").Replace('\\','/'), (Downloads.convert <| sha.ComputeHash(y))))
-    dict
-
-//serializeToFile (seqHASH path) "modmap.json"
-
-let compression (mapServer: Dictionary<string, string>) (mapClient: Dictionary<string, string>) =
-    
-    let fullPath (sKey: string) = path + sKey.Replace('/', '\\')
-    
-    let checkToDownload =
-        let downloadSeq = [
-            for KeyValue(k, v) in mapServer do
-                match mapClient.ContainsKey(k) with
-                | true ->
-                    //printfn "Full path = %s key = %s value1 = %s value2 = %s" fullPath k v mapClient.[k]
-                    let check = v = mapClient.[k]
-                    if check then printfn "Все в порядке" else
-                        printfn "Сумма файлов несовпадает. Вызываем асинхронную функцию на скачивание в директорию %s"
+        let fullPath (sKey: string) = currentPath + sKey.Replace('/', '\\')
+        
+        let checkToDownload =
+            let downloadSeq = [
+                for KeyValue(k, v) in mapServer do
+                    match mapClient.ContainsKey(k) with
+                    | true ->
+                        let check = v = mapClient.[k]
+                        if check then printfn "Все в порядке" else
+                            printfn "Сумма файлов несовпадает. Вызываем асинхронную функцию на скачивание в директорию %s"
+                            <| fullPath k
+                            yield (k, v)
+                    | false ->
+                        printfn "Такого файла нет. Добавляем в пул на скачивание в директорию %s"
                         <| fullPath k
                         yield (k, v)
-                | false ->
-                    printfn "Такого файла нет. Добавляем в пул на скачивание в директорию %s"
-                    <| fullPath k
-                    yield (k, v)
-                    ]
-        let parallelOption = ParallelOptions(MaxDegreeOfParallelism = 7)
-        printfn "Всего файлов надо скачать: %d" downloadSeq.Length
-        Parallel.ForEach(downloadSeq, parallelOption, (fun (file, sum) ->
-            Downloads.startDownload file (fullPath file) sum
+                        ]
+            let parallelOption = ParallelOptions(MaxDegreeOfParallelism = 7)
+            printfn "Всего файлов надо скачать: %d" downloadSeq.Length
+            Parallel.ForEach(downloadSeq, parallelOption, (fun (file, sum) ->
+                Server.startDownload file (fullPath file) sum
+                |>function
+                | Ok(resp) -> printfn "%s" resp
+                | Error (err) -> printfn "%s" err))
+                    
+        let checkToDelete =
+            for k in mapClient.Keys do
+                match mapServer.ContainsKey(k) with
+                | true -> printfn "Все хорошо, такой файл есть в мапе сервера."
+                | false -> printfn "Такого файла в мапе сервера нет, запускаем функцию удаления в путь %s"
+                           <| fullPath k
+                           File.Delete(fullPath k)
+                           
+        checkToDownload |> printfn "%A"
+        checkToDelete
+
+[<EntryPoint>]
+let main _ =
+    System.Threading.Thread.Sleep(3000)
+    printfn "test"
+    Server.getServerStatus()
+    |>SerDeser.deserializeRespons<Types.ResponsStatus>
+    |>Server.updateLauncher
+    |>function
+    |Ok status ->
+        match status with
+        |true ->
+            Server.getModmapFromServer()
             |>function
-            | Ok(resp) -> printfn "%s" resp
-            | Error (err) -> printfn "%s" err))
-                
-    let checkToDelete =
-        for k in mapClient.Keys do
-            match mapServer.ContainsKey(k) with
-            | true -> printfn "Все хорошо, такой файл есть в мапе сервера."
-            | false -> printfn "Такого файла в мапе сервера нет, запускаем функцию удаления в путь %s"
-                       <| fullPath k
-                       File.Delete(fullPath k)
-                       
-    checkToDownload |> printfn "%A"
-    checkToDelete
-            
-Downloads.getModmapFromServer()
-|>function
-|Ok(dict) -> compression dict (seqHASH path)
-|Error(err) -> printfn "%s" err
+            |Ok(modmapServer) ->
+                Launcher.compression modmapServer (Launcher.modmapClient currentPath)
+                0
+            |Error(err) ->
+                printfn "%s" err
+                System.Console.ReadKey() |> ignore
+                1
+        |false -> 2
+    |Error (err) ->
+        printfn "%s" err
+        System.Console.ReadKey() |> ignore
+        3
