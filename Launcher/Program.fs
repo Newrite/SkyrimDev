@@ -322,7 +322,6 @@ module Launcher =
 [<EntryPoint>]
 let main _ =
     System.Threading.Thread.Sleep(3000)
-    printfn "test"
     Server.getServerStatus()
     |>SerDeser.deserializeRespons<Types.ResponsStatus>
     |>Server.updateLauncher
