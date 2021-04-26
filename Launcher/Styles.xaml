@@ -1,0 +1,73 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    
+    <!-- Style for main progress bar  -->
+    
+    <Style Selector="ProgressBar.downloadbar">
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderThickness" Value="1.0"/>
+        <Setter Property="BorderBrush" Value="#49678D"/>
+        <Setter Property="Foreground" Value="#00538A"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <!-- Main style for all buttons  -->
+    
+    <Style Selector="Button /template/ ContentPresenter">
+        <Setter Property="CornerRadius" Value="0.0" />
+    </Style>
+    
+    <Style Selector="Button.main /template/ ContentPresenter">
+        <Setter Property="Background" Value="#00538A"/>
+        <Setter Property="BorderBrush" Value="#2271B3"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <Style Selector="Button.main:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#49678D"/>
+    </Style>
+    
+    <Style Selector="Button.main:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#2271B3"/>
+    </Style>
+    
+    <!-- Extented style for Files check button  -->
+    
+    <Style Selector="Button.filescheck /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 0.0, 5.0, 5.0"/>
+    </Style>
+    
+    <!-- Extented style for update button  -->
+    
+    <Style Selector="Button.update /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 0.0, 5.0, 5.0"/>
+    </Style>
+    
+    <!-- Style for application name  -->
+    
+    <Style Selector="TextBlock.appname">
+        <Setter Property="Margin" Value="10.0, 0.0, 0.0, 0.0"/>
+        <Setter Property="FontSize" Value="16.0"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="Height" Value="25.0"/>
+    </Style>
+    
+    <!-- Style for text current download file and current process -->
+    
+    <Style Selector="TextBlock.currentoperation">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <!-- Style for radio buttons disk -->
+    
+    <Style Selector="TextBlock.diskradio">
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+    
+</Styles>
