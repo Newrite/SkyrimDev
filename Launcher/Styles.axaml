@@ -2,14 +2,29 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
+    <Style Selector="Window.mainwindow">
+        <Setter Property="Background" Value="#1C1C1C"/>
+        <Setter Property="FontWeight" Value="Heavy"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="Window.test">
+        <Setter Property="Background">
+            <Setter.Value>
+                <ImageBrush Source="Skyrim.jpg" Stretch="UniformToFill"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="FontWeight" Value="Heavy"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
     
     <!-- Style for main progress bar  -->
     
     <Style Selector="ProgressBar.downloadbar">
-        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="Background" Value="#000000"/>
         <Setter Property="BorderThickness" Value="1.0"/>
         <Setter Property="BorderBrush" Value="#49678D"/>
-        <Setter Property="Foreground" Value="#00538A"/>
+        <Setter Property="Foreground" Value="#336699"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
@@ -21,7 +36,7 @@
     </Style>
     
     <Style Selector="Button.main /template/ ContentPresenter">
-        <Setter Property="Background" Value="#00538A"/>
+        <Setter Property="Background" Value="#336699"/>
         <Setter Property="BorderBrush" Value="#2271B3"/>
         <Setter Property="VerticalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -54,6 +69,8 @@
         <Setter Property="FontSize" Value="16.0"/>
         <Setter Property="VerticalAlignment" Value="Bottom"/>
         <Setter Property="Height" Value="25.0"/>
+        <Setter Property="FontWeight" Value="UltraBlack"/>
+        <Setter Property="FontStyle" Value="Normal"/>
     </Style>
     
     <!-- Style for text current download file and current process -->
@@ -61,12 +78,31 @@
     <Style Selector="TextBlock.currentoperation">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="FontSize" Value="14.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="TextBlock.choosedisk">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="16.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="TextBlock.launcherupdate">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="14.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
     </Style>
     
     <!-- Style for radio buttons disk -->
     
     <Style Selector="TextBlock.diskradio">
-        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalAlignment" Value="Right"/>
     </Style>
     

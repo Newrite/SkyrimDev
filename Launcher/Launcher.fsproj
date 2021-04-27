@@ -19,10 +19,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Types.fs" />
         <Compile Include="Logic.fs" />
-        <Compile Include="GUI.fs" />
+        <Compile Include="Shell.fs" />
         <Compile Include="Program.fs" />
         <AvaloniaResource Include="**\*.xaml" />
+        <AvaloniaResource Include="Skyrim.jpg" />
+        <AvaloniaResource Include="**\*.axaml" />
+        <AvaloniaResource Include="**\*.ttf" />
     </ItemGroup>
 
     <ItemGroup>
