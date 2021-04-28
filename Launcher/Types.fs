@@ -12,35 +12,39 @@ module Types =
   type ResponsStatus =
     { statusline: bool
       information: string }
-    
+
   type LauncherVersion =
     | Outdate
     | Update
     | NotYeatCheck
-    
+
   type Message =
-  | SetCurrentDownloadFile of string option
-  | IncreaseDownloadedCounter
-  | SetFilesToDownload of int
-  | DownloadFinished
-  | StartDownload
-  
-  | SetCurrentDeleteFile of string option
-  | IncreaseDeletedCounter
-  | SetFilesToDelete of int
-  | DeleteFinished
-  | StartDelete
-  
-  | SetCurrentProgramProcess of string option
-  | StartUpdateLauncher
-  | SetVersionLauncher of LauncherVersion
-  | SwitchDisk
-  | Finished
-  
+    | SetCurrentDownloadFile of string option
+    | IncreaseDownloadedCounter
+    | IncreaseCorruptedCounter
+    | SetFilesToDownload of int
+    | DownloadFinished
+    | StartDownload
+    | PrintCorruptedFiles
+
+    | SetCurrentDeleteFile of string option
+    | IncreaseDeletedCounter
+    | SetFilesToDelete of int
+    | DeleteFinished
+    | StartDelete
+
+    | StartUpdateFilesProcess
+    | SetCurrentProgramProcess of string option
+    | StartUpdateLauncher
+    | SetVersionLauncher of LauncherVersion
+    | SwitchDisk
+    | Finished
+    | CheckFiles
+
   type Disk =
     | YandexDisk
     | DropboxDisk
-    
+
     member self.Change =
       match self with
       | YandexDisk -> DropboxDisk
@@ -55,48 +59,48 @@ module Types =
       match self with
       | DropboxDisk -> true
       | YandexDisk -> false
-  
+
   type StateDownloads =
     { DownloadedFile: string option
       IsInDownload: bool
       SumOfFileDownload: int
       CurrentDownloadProgress: float }
-    
+
   type StateDeletes =
     { DeletedFile: string option
       IsInDelete: bool
       SumOfFileDelete: int
       CurrentDeleteProgress: float }
-  
+
   type State =
     { IsInUpdate: bool
       StateDownloads: StateDownloads
       StateDeletes: StateDeletes
+      CorruptedFiles: int
       ProgrammProcess: string option
       Disk: Disk
       Version: LauncherVersion }
-  
-  type ServerStatus =
-    ServerOK
-    
+
+  type ServerStatus = ServerOK
+
   type URL =
     | URL of string
     member self.Value =
       match self with
       | URL value -> value
-      
+
   type Headers =
-    |Headers of (string * string) list
+    | Headers of (string * string) list
     member self.Value =
       match self with
       | Headers value -> value
-    
+
   type Query =
-    |Query of (string * string) list
+    | Query of (string * string) list
     member self.Value =
       match self with
       | Query value -> value
-      
+
   type HttpMethodAlias =
     | GET
     | POST

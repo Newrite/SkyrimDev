@@ -18,39 +18,75 @@ module Launcher =
       |> function
       | Ok resp ->
           match resp with
-          | true -> Update |> SetVersionLauncher |> dispatch
-          | false -> Outdate |> SetVersionLauncher |> dispatch
+          | true ->
+              None |> SetCurrentProgramProcess |> dispatch
+              Update |> SetVersionLauncher |> dispatch
+          | false ->
+              None |> SetCurrentProgramProcess |> dispatch
+              Outdate |> SetVersionLauncher |> dispatch
       | Error err ->
           Log.TraceErr
           <| sprintf "Error when try check version: %s" err
 
-          Some(err) |> SetCurrentDownloadFile |> dispatch
+          Utils.SetCPP dispatch err
     }
-    
-  let checkFiles (dispatch: Message -> unit) =
+
+  let startUpdateLauncherFunction (dispatch: Message -> unit) =
     async {
-      Server.getModmapFromServer()
-      |>function
-      |Ok dict ->
-        let needDownload, needDelete = Launcher.filesCheck dict dispatch
-        sprintf "Files need to delete: %d need to download: %d" needDelete needDownload
-        |>Some
-        |>SetCurrentProgramProcess
-        |>dispatch
-      |Error err -> err |> Some |> SetCurrentProgramProcess |> dispatch
+      (Server.getServerStatus (), dispatch)
+      |> UpdateLauncher.checkLauncherUpdate
+      |> UpdateLauncher.updateLauncher
+      |> function
+      | Ok result ->
+          if result then
+            dispatch Finished
+          else
+            Utils.SetCPP dispatch "Launcher will restart, if not, please, restart manually"
+            System.Environment.Exit(0)
+      | Error err -> Utils.SetCPP dispatch err
+    }
+
+  let checkFilesFunction (dispatch: Message -> unit) =
+    async {
+      Server.getModmapFromServer ()
+      |> function
+      | Ok dict ->
+          Utils.SetCPP dispatch "Start check files for delete and download"
+          let needDownload, needDelete = Launcher.filesCheck dict dispatch
+
+          Utils.SetCPP dispatch
+          <| sprintf "Files need to delete: %d need to download: %d" needDelete needDownload
+
+          dispatch Finished
+      | Error err ->
+          Utils.SetCPP dispatch err
+          dispatch Finished
+    }
+
+  let startUpdateFilesProcessFunction (disk: Disk) (dispatch: Message -> unit) =
+    async {
+      Server.getModmapFromServer ()
+      |> function
+      | Ok dict -> Launcher.updateMods dict disk dispatch
+      | Error err ->
+          err
+          |> Some
+          |> SetCurrentProgramProcess
+          |> dispatch
     }
 
   let init () =
     { StateDownloads =
         { DownloadedFile = None
           IsInDownload = false
-          SumOfFileDownload = 100
-          CurrentDownloadProgress = 76.0 }
+          SumOfFileDownload = 0
+          CurrentDownloadProgress = 0.0 }
       StateDeletes =
         { DeletedFile = None
           IsInDelete = false
           SumOfFileDelete = 0
           CurrentDeleteProgress = 0.0 }
+      CorruptedFiles = 0
       IsInUpdate = false
       ProgrammProcess = None
       Disk = YandexDisk
@@ -70,6 +106,10 @@ module Launcher =
           StateDownloads =
             { state.StateDownloads with
                 CurrentDownloadProgress = state.StateDownloads.CurrentDownloadProgress + 1.0 } }
+
+    let private increaseCorruptedFiles state =
+      { state with
+          CorruptedFiles = state.CorruptedFiles + 1 }
 
     let private setCurrentProgramProcess newProcess (state: State) =
       { state with
@@ -96,9 +136,19 @@ module Launcher =
       { state with
           StateDownloads =
             { state.StateDownloads with
-                IsInDownload = true
+                IsInDownload = true } }
+
+    let private startUpdateFilesProcess state =
+      { state with
+          IsInUpdate = true
+          StateDownloads =
+            { state.StateDownloads with
                 SumOfFileDownload = 0
-                CurrentDownloadProgress = 0.0 } }
+                CurrentDownloadProgress = 0.0 }
+          StateDeletes =
+            { state.StateDeletes with
+                SumOfFileDelete = 0
+                CurrentDeleteProgress = 0.0 } }
 
     let private setVersionLauncher version state = { state with Version = version }
 
@@ -113,58 +163,97 @@ module Launcher =
           StateDeletes =
             { state.StateDeletes with
                 CurrentDeleteProgress = state.StateDeletes.CurrentDeleteProgress + 1.0 } }
-      
+
     let private deleteFinished state =
       { state with
           StateDeletes =
             { state.StateDeletes with
-                IsInDelete = false }
-          IsInUpdate = false }
-    
+                IsInDelete = false } }
+
     let private startDelete state =
       { state with
           StateDeletes =
             { state.StateDeletes with
-                IsInDelete = true
-                SumOfFileDelete = 0
-                CurrentDeleteProgress = 0.0 } }
-    
+                IsInDelete = true } }
+
     let private setFilesToDelete count state =
       { state with
           StateDeletes =
             { state.StateDeletes with
                 SumOfFileDelete = count } }
-      
-    let private finished state = state
+
+    let private finished state =
+      { state with
+          StateDownloads =
+            { state.StateDownloads with
+                IsInDownload = false }
+          StateDeletes =
+            { state.StateDeletes with
+                IsInDelete = false }
+          IsInUpdate = false }
+
+    let private checkFiles state = { state with IsInUpdate = true }
+
+    let private printCorruptedFiles state = state
 
     let update (msg: Message) state =
       match msg with
       | SetCurrentDownloadFile file -> setCurrentDownloadFile file state, Cmd.none
       | IncreaseDownloadedCounter -> increaseDownloadedCounter state, Cmd.none
+      | IncreaseCorruptedCounter -> increaseCorruptedFiles state, Cmd.none
       | SetFilesToDownload filesCount -> setFilesToDownload filesCount state, Cmd.none
       | DownloadFinished -> downloadFinished state, Cmd.none
       | StartDownload -> startDownload state, Cmd.none
-      
+      | PrintCorruptedFiles ->
+          printCorruptedFiles state,
+          Cmd.ofSub
+            (fun (dispatch: Message -> unit) ->
+              if state.CorruptedFiles > 0 then
+                Utils.SetCPP dispatch
+                <| sprintf "We have %d corrupted files, try download adain" state.CorruptedFiles)
+
       | SetCurrentDeleteFile file -> setCurrentDeletedFile file state, Cmd.none
       | IncreaseDeletedCounter -> increaseDeletedCounter state, Cmd.none
       | SetFilesToDelete filesCount -> setFilesToDelete filesCount state, Cmd.none
       | DeleteFinished -> deleteFinished state, Cmd.none
       | StartDelete -> startDelete state, Cmd.none
-      
+
+      | StartUpdateFilesProcess ->
+          startUpdateFilesProcess state,
+          Cmd.ofSub
+            (fun (dispatch: Message -> unit) ->
+              startUpdateFilesProcessFunction state.Disk dispatch
+              |> Async.Start)
       | SetCurrentProgramProcess newProcess -> setCurrentProgramProcess newProcess state, Cmd.none
-      | StartUpdateLauncher -> startUpdateLauncher state, Cmd.none
+      | StartUpdateLauncher ->
+          startUpdateLauncher state,
+          Cmd.ofSub
+            (fun (dispatch: Message -> unit) ->
+              startUpdateLauncherFunction dispatch
+              |> Async.Start)
       | SetVersionLauncher version -> setVersionLauncher version state, Cmd.none
       | SwitchDisk -> switchDisk state, Cmd.none
-      | Finished -> finished state, Cmd.ofSub (fun (dispatch: Message -> unit) -> checkFiles dispatch |> Async.Start)
+      | Finished ->
+            finished state, Cmd.ofSub (fun (dispatch: Message -> unit) ->
+              None |> SetCurrentDeleteFile |> dispatch
+              None |> SetCurrentDownloadFile |> dispatch)
+      | CheckFiles ->
+          checkFiles state, Cmd.ofSub (fun (dispatch: Message -> unit) -> checkFilesFunction dispatch |> Async.Start)
 
   module View =
 
     module private ProgressBars =
       let progressBarDownloadState (state: State) (dispatch: Message -> unit) =
         let progress () =
-          state.StateDownloads.CurrentDownloadProgress
-          / ((float state.StateDownloads.SumOfFileDownload)
-             / 100.0)
+          if state.StateDownloads.IsInDownload then
+            state.StateDownloads.CurrentDownloadProgress
+            / ((float state.StateDownloads.SumOfFileDownload)
+               / 100.0)
+          elif state.StateDeletes.IsInDelete then
+            state.StateDeletes.CurrentDeleteProgress
+            / ((float state.StateDeletes.SumOfFileDelete) / 100.0)
+          else
+            100.0
 
         ProgressBar.create [ Grid.row 3
                              Grid.column 1
@@ -172,7 +261,9 @@ module Launcher =
                              ProgressBar.isVisible true //state.IsDownload
                              ProgressBar.value <| progress ()
                              ProgressBar.classes [ "downloadbar" ]
-                             ProgressBar.showProgressText true ]
+                             ProgressBar.showProgressText
+                             <| (state.StateDeletes.IsInDelete
+                                 || state.StateDownloads.IsInDownload) ]
 
     module private TextBlocks =
 
@@ -185,17 +276,29 @@ module Launcher =
       let textBlockDownloadsFile (state: State) (dispatch: Message -> unit) =
         TextBlock.create [ Grid.column 0
                            Grid.row 2
-                           TextBlock.text "Download 30 of 7302"
+                           if state.StateDownloads.IsInDownload then
+                             TextBlock.text
+                             <| sprintf
+                                  "Download %d of %d"
+                                  (int state.StateDownloads.CurrentDownloadProgress)
+                                  state.StateDownloads.SumOfFileDownload
+                           if state.StateDeletes.IsInDelete then
+                             TextBlock.text
+                             <| sprintf
+                                  "Delete %d of %d"
+                                  (int state.StateDeletes.CurrentDeleteProgress)
+                                  state.StateDeletes.SumOfFileDelete
                            Grid.columnSpan 10
                            TextBlock.classes [ "launcherupdate" ] ]
 
       let textBlockDownloadedFile (state: State) (dispatch: Message -> unit) =
         TextBlock.create [ Grid.column 1
                            Grid.row 5
-                           TextBlock.text "Download... /body_msn.dds"
                            if state.StateDownloads.DownloadedFile.IsSome then
                              TextBlock.text state.StateDownloads.DownloadedFile.Value
-                           Grid.columnSpan 8
+                           if state.StateDeletes.DeletedFile.IsSome then
+                             TextBlock.text state.StateDeletes.DeletedFile.Value
+                           Grid.columnSpan 9
                            TextBlock.classes [ "currentoperation" ] ]
 
       let textBlockLauncherVersion (state: State) (dispatch: Message -> unit) =
@@ -213,7 +316,7 @@ module Launcher =
                            Grid.row 4
                            if state.ProgrammProcess.IsSome then
                              TextBlock.text state.ProgrammProcess.Value
-                           Grid.columnSpan 5
+                           Grid.columnSpan 9
                            TextBlock.classes [ "currentoperation" ] ]
 
       let textBlockDiskDescription (state: State) (dispatch: Message -> unit) =
@@ -226,36 +329,41 @@ module Launcher =
     module private Buttons =
 
       let buttonUpdate (state: State) (dispatch: Message -> unit) =
-        Button.create [ Grid.column 9
-                        Grid.row 9
-                        Button.isHitTestVisible true
-                        Button.classes [ "main"; "update" ]
-                        Button.content "Update"
-                        Button.isEnabled
-                        <| ((not state.IsInUpdate)
-                            && not (state.Version = NotYeatCheck))
-                        Button.onClick (fun _ -> dispatch StartUpdateLauncher) ]
-
-      let buttonDownload (state: State) (dispatch: Message -> unit) =
         Button.create [ Grid.column 8
                         Grid.columnSpan 2
                         Grid.row 8
                         Button.isHitTestVisible true
                         Button.classes [ "main"; "download" ]
+                        Button.content "Update launcher"
+                        Button.isEnabled
+                        <| ((not state.IsInUpdate)
+                            && not (state.Version = NotYeatCheck)
+                            && not (state.StateDownloads.IsInDownload))
+                        Button.onClick (fun _ -> dispatch StartUpdateLauncher) ]
+
+      let buttonDownload (state: State) (dispatch: Message -> unit) =
+        Button.create [ Grid.column 9
+                        Grid.row 9
+                        Button.isHitTestVisible true
+                        Button.classes [ "main"; "update" ]
                         Button.content "Download"
                         Button.isEnabled
                         <| ((not state.IsInUpdate)
                             && not (state.Version = NotYeatCheck)
                             && not (state.StateDownloads.IsInDownload))
-                        Button.onClick (fun _ -> dispatch StartDownload) ]
+                        Button.onClick (fun _ -> dispatch StartUpdateFilesProcess) ]
 
       let buttonFileCheck (state: State) (dispatch: Message -> unit) =
         Button.create [ Grid.column 8
                         Grid.row 9
                         Button.isHitTestVisible true
                         Button.classes [ "main"; "filescheck" ]
-                        Button.content "Files check"
-                        Button.onClick (fun _ -> dispatch Finished) ]
+                        Button.content "Check files"
+                        Button.isEnabled
+                        <| ((not state.IsInUpdate)
+                            && not (state.Version = NotYeatCheck)
+                            && not (state.StateDownloads.IsInDownload))
+                        Button.onClick (fun _ -> dispatch CheckFiles) ]
 
     module private RadioButtons =
 
@@ -265,6 +373,10 @@ module Launcher =
                              RadioButton.classes [ "diskradio" ]
                              RadioButton.content "Dropbox"
                              RadioButton.isChecked state.Disk.IsDropbox
+                             RadioButton.isEnabled
+                             <| ((not state.IsInUpdate)
+                                 && not (state.Version = NotYeatCheck)
+                                 && not (state.StateDownloads.IsInDownload))
                              RadioButton.onChecked (fun _ -> dispatch SwitchDisk) ]
 
       let radioButtonYandex (state: State) (dispatch: Message -> unit) =
@@ -273,6 +385,10 @@ module Launcher =
                              RadioButton.classes [ "diskradio" ]
                              RadioButton.content "Yandex"
                              RadioButton.isChecked state.Disk.IsYandex
+                             RadioButton.isEnabled
+                             <| ((not state.IsInUpdate)
+                                 && not (state.Version = NotYeatCheck)
+                                 && not (state.StateDownloads.IsInDownload))
                              RadioButton.onChecked (fun _ -> dispatch SwitchDisk) ]
 
     module private Grids =

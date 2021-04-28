@@ -13,7 +13,15 @@ open System.Reflection
 open System.Diagnostics
 open CLogger
 
+
 module Utils =
+
+  let SetCPP (dispatch: Message -> unit) processName =
+    processName
+    |> Some
+    |> SetCurrentProgramProcess
+    |> dispatch
+
   let currentPath = Directory.GetCurrentDirectory()
 
   let exeFileName =
@@ -164,9 +172,7 @@ module UpdateLauncher =
 
   let renameAndDeleteOldLauncherFiles (dispatch: Message -> unit) =
     try
-      Some "Delete and rename old files..."
-      |> SetCurrentProgramProcess
-      |> dispatch
+      Utils.SetCPP dispatch "Delete and rename old files..."
 
       if
         (File.Exists(Utils.exeFileName) |> not)
@@ -197,13 +203,11 @@ module UpdateLauncher =
       <| sprintf "Exception when try Delete and rename old files Err:%s" eX.Message
 
   let private launcherSumFromServer (serverResult: Result<ServerStatus, string>, dispatch: Message -> unit) =
-    Log.TraceInf "Get launcher hash sum from server"
+    Log.TraceInf "Try get launcher hash sum from server"
+    Utils.SetCPP dispatch "Try get launcher hash sum from server"
 
     match serverResult with
     | Ok _ ->
-        Some "Get SHA1 sum from server"
-        |> SetCurrentProgramProcess
-        |> dispatch
 
         Log.TraceInf "Start request for hash sum"
         (Utils.requestStringResult (URL Server.LauncherURL) GET (Query [ "type", "hash" ]) Server.headers), dispatch
@@ -214,9 +218,7 @@ module UpdateLauncher =
 
     match hash with
     | Ok hashServer ->
-        Some "Compare launchers hash sum"
-        |> SetCurrentProgramProcess
-        |> dispatch
+        Utils.SetCPP dispatch "Compare launchers hash sum"
 
         use sha = new SHA1Managed()
 
@@ -238,9 +240,7 @@ module UpdateLauncher =
     | Ok check ->
         if not check then
           try
-            Some "Download new launcher..."
-            |> SetCurrentProgramProcess
-            |> dispatch
+            Utils.SetCPP dispatch "Download new launcher..."
 
             Log.TraceInf "Start get launcher stream from server trough HTTPClient"
 
@@ -261,6 +261,7 @@ module UpdateLauncher =
             dispatch
         else
           Log.TraceInf "Update don't required, all ok"
+          Utils.SetCPP dispatch "Update don't required, all ok"
           Ok None, dispatch
     | Error err -> Error err, dispatch
 
@@ -276,9 +277,7 @@ module UpdateLauncher =
         if stream.IsSome then
           Log.TraceInf "Launcher need update, start stream to file..."
 
-          Some "Have new version, start write..."
-          |> SetCurrentProgramProcess
-          |> dispatch
+          Utils.SetCPP dispatch "Have new version, start write to file..."
 
           use outputFile =
             new FileStream(Utils.exeFileName + ".temp", FileMode.Create)
@@ -314,6 +313,9 @@ module Download =
   let private getFileStream (dispatch: Message -> unit) (link: Result<string, string>) =
     match link with
     | Ok href ->
+        Log.TraceInf "Try get file stream"
+        Utils.SetCPP dispatch "Try get file stream..."
+
         Ok
         <| Utils.requestStreamResult (URL href) GET (Query []) (Headers [])
     | Error err -> Error err
@@ -321,6 +323,7 @@ module Download =
   let private checkFilesSum sum (dispatch: Message -> unit) (pathResult: Result<string, string>) =
     match pathResult with
     | Ok path ->
+        Utils.SetCPP dispatch "Expr SHA1 sum of downloaded file"
         use sha = new SHA1Managed()
 
         Log.TraceInf
@@ -330,7 +333,13 @@ module Download =
           Utils.convertByteArrayToString
           <| sha.ComputeHash(File.ReadAllBytes(path))
 
-        sum = sumSnd |> ignore
+        if sum <> sumSnd then
+          Log.TraceInf
+          <| sprintf "Downloaded file is corrupted: SHA sum server: %s SHA sum new file: %s" sum sumSnd
+
+          Utils.SetCPP dispatch "Downloaded file is corrupted..."
+          dispatch IncreaseCorruptedCounter
+
         Ok()
     | Error err -> Error err
 
@@ -341,6 +350,10 @@ module Download =
     =
     match responsStream with
     | Ok stream ->
+        Log.TraceInf
+        <| sprintf "Write stream downloaded file: %s" fullPathToFile
+
+        Utils.SetCPP dispatch "Write stream to file"
 
         use outputFile =
           new FileStream(fullPathToFile, FileMode.Create)
@@ -358,8 +371,14 @@ module Download =
     |> function
     | Ok resp ->
         if resp.status then
+          Utils.SetCPP dispatch "Try get link from disk"
           Ok resp.link
         else
+          Utils.SetCPP dispatch "Problem with get link from disk"
+
+          Log.TraceErr
+          <| sprintf "Problem with get link from disk, server info: %s" resp.info
+
           Error
           <| sprintf "Problem with get link from disk, server info: %s" resp.info
     | Error err -> Error err
@@ -370,9 +389,15 @@ module Download =
     =
     match resp with
     | Ok streamResult ->
+        Utils.SetCPP dispatch "Resolver file stream result..."
+
         match streamResult with
-        | Ok stream -> Ok stream
-        | Error err -> Error err
+        | Ok stream ->
+            Utils.SetCPP dispatch "Stream ok"
+            Ok stream
+        | Error err ->
+            Utils.SetCPP dispatch "Error when try get stream"
+            Error err
     | Error err -> Error err
 
   let private fullDownloadProcess pathToFile fullPathToFile (dispatch: Message -> unit) fileSum =
@@ -394,7 +419,7 @@ module Launcher =
 
     let rec filesUnder (basePath: string) =
       seq {
-        if basePath.Contains("mods\\!PS") then
+        if basePath.Contains(@"mods\!PS") then
           yield! Directory.GetFiles(basePath)
 
         for subDir in Directory.GetDirectories(basePath) do
@@ -402,6 +427,24 @@ module Launcher =
       }
 
     filesUnder sPath
+
+  let deleteEmptyFoldersRecursive sPath =
+    Log.TraceInf "Delete all empty folders in mods\\!PS"
+
+    let rec dirsUnder (basePath: string) =
+
+      for subDir in Directory.GetDirectories(basePath) do
+        dirsUnder subDir
+
+      if basePath.Contains(@"mods\!PS") then
+        if (Directory.GetFiles(basePath).Length = 0)
+           && (Directory.GetDirectories(basePath).Length = 0) then
+          Log.TraceInf
+          <| sprintf "Delete empty folder %s" basePath
+
+          Directory.Delete(basePath)
+
+    dirsUnder sPath
 
   let private modmapClient sPath =
     Log.TraceInf "Create client modmap"
@@ -427,6 +470,8 @@ module Launcher =
     (mapServer: Dictionary<string, string>)
     (dispatch: Message -> unit)
     =
+    Utils.SetCPP dispatch "Start create list files for download"
+    Log.TraceInf "Start create list files for download"
 
     [ for KeyValue (k, v) in mapServer do
         match mapClient.ContainsKey(k) with
@@ -450,38 +495,41 @@ module Launcher =
     (mapServer: Dictionary<string, string>)
     (dispatch: Message -> unit)
     =
-    Log.TraceInf "Check files to delete"
+    Log.TraceInf "Start create list files for delete"
 
-    Some "Delete old files... "
-    |> SetCurrentProgramProcess
-    |> dispatch
+    Utils.SetCPP dispatch "Start create list files for delete"
 
     [ for KeyValue (k, v) in mapClient do
         match mapServer.ContainsKey(k) with
         | true ->
             Log.TraceInf
             <| sprintf "File %s... ok, file exists in server modmap" k
-        | false -> yield k ]
+        | false ->
+            Log.TraceInf
+            <| sprintf "File %s... not in map, will delete" k
+
+            yield k ]
 
   let private deleteOutdateFiles (deleteList: string list) (dispatch: Message -> unit) =
-    Log.TraceInf "Check files to delete"
+    Log.TraceInf "Delete old files... "
 
-    Some "Delete old files... "
-    |> SetCurrentProgramProcess
-    |> dispatch
+    Utils.SetCPP dispatch "Delete old files... "
 
     for path in deleteList do
-      Log.TraceInf
-      <| sprintf "File %s... no found in server modmap, delete in: %s" path (Utils.fullPath path)
 
-      sprintf "Delete: %s" (Utils.fullPath path)
+      sprintf "Delete... %s" (Utils.getFileNameFromPath <| Utils.fullPath path)
       |> Some
-      |> SetCurrentDownloadFile
+      |> SetCurrentDeleteFile
       |> dispatch
 
       File.Delete(Utils.fullPath path)
-      
+      dispatch IncreaseDeletedCounter
+
   let filesCheck (mapServer: Dictionary<string, string>) (dispatch: Message -> unit) =
+
+    Log.TraceInf "Create client modmap"
+    Utils.SetCPP dispatch "Create client modmap"
+
     let mapClient = modmapClient Utils.currentPath
 
     let listForDownload =
@@ -489,12 +537,16 @@ module Launcher =
 
     let listForDelete =
       getFilesForDelete mapClient mapServer dispatch
-      
+
     listForDownload.Length, listForDelete.Length
 
   let updateMods (mapServer: Dictionary<string, string>) (disk: Disk) (dispatch: Message -> unit) =
 
     Log.TraceInf "Real work starts now"
+    Utils.SetCPP dispatch "Real work starts now"
+
+    Log.TraceInf "Create client modmap"
+    Utils.SetCPP dispatch "Create client modmap"
 
     let mapClient = modmapClient Utils.currentPath
 
@@ -504,24 +556,22 @@ module Launcher =
     let listForDelete =
       getFilesForDelete mapClient mapServer dispatch
 
-    SetFilesToDownload listForDownload.Length
-    |> dispatch
-
     Log.TraceInf
     <| sprintf "Files to downloads: %d" listForDownload.Length
 
-    let downloadParallel (filesList: (string * string) list) =
-      Some "Download files... "
-      |> SetCurrentProgramProcess
-      |> dispatch
+    Log.TraceInf
+    <| sprintf "Files to delete: %d" listForDelete.Length
 
-      StartDownload |> dispatch
+    let downloadParallel (filesList: (string * string) list) =
 
       Log.TraceInf
-      <| sprintf "Start downloads, num of maximum threads: %d" 7
+      <| sprintf "Start downloads, num of maximum threads: %d" -1
+
+      Utils.SetCPP dispatch
+      <| sprintf "Start downloads, num of maximum threads: %d" -1
 
       let parallelOption =
-        ParallelOptions(MaxDegreeOfParallelism = 7)
+        ParallelOptions(MaxDegreeOfParallelism = -1)
 
       Parallel.ForEach(
         filesList,
@@ -529,11 +579,43 @@ module Launcher =
         (fun (file, sum) ->
           Utils.createDirectoryIfNotExist (Utils.fullPath file)
 
+          sprintf "Download... %s" (Utils.getFileNameFromPath <| Utils.fullPath file)
+          |> Some
+          |> SetCurrentDownloadFile
+          |> dispatch
+
           Download.startDownload file (Utils.fullPath file) sum disk dispatch
           |> function
-          | Ok _ -> Log.TraceInf <| sprintf "Successful download"
+          | Ok _ ->
+              dispatch IncreaseDownloadedCounter
+              Log.TraceInf <| sprintf "Successful download"
           | Error err -> Log.TraceErr <| sprintf "%s" err)
       )
 
+    listForDownload.Length
+    |> SetFilesToDownload
+    |> dispatch
+
+    StartDownload |> dispatch
+
     downloadParallel listForDownload |> ignore
+
+    DownloadFinished |> dispatch
+
+    listForDelete.Length
+    |> SetFilesToDelete
+    |> dispatch
+
+    StartDelete |> dispatch
+
     deleteOutdateFiles listForDelete dispatch
+
+    Utils.SetCPP dispatch "Now delete empty folders"
+
+    deleteEmptyFoldersRecursive Utils.currentPath
+    DeleteFinished |> dispatch
+
+    Utils.SetCPP dispatch "Ok, download and delete old files finished"
+    dispatch PrintCorruptedFiles
+
+    dispatch Finished
