@@ -149,7 +149,7 @@ module Server =
 
 module UpdateLauncher =
 
-  let renameAndDeleteOlderFiles (dispatch: Message -> unit) =
+  let renameAndDeleteOldLauncherFiles (dispatch: Message -> unit) =
     try
       Some "Delete and rename old files..."
       |> SetUpdateProgramProcess

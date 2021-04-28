@@ -8,11 +8,12 @@ open CLogger
 
 module Launcher =
 
-  let initCheckUpdate (dispatch: Message -> unit) =
+  let initFunction (dispatch: Message -> unit) =
     async {
-      let serverStatus = Server.getServerStatus ()
-
-      UpdateLauncher.checkLauncherUpdate (serverStatus, dispatch)
+      UpdateLauncher.renameAndDeleteOldLauncherFiles dispatch
+      
+      (Server.getServerStatus(), dispatch)
+      |>UpdateLauncher.checkLauncherUpdate
       |> fst
       |> function
       | Ok resp ->
@@ -36,7 +37,8 @@ module Launcher =
       ProgrammProcess = None
       Disk = YandexDisk
       Version = NotYeatCheck },
-    Cmd.ofSub (fun (dispatch: Message -> unit) -> initCheckUpdate dispatch |> Async.Start)
+    Cmd.ofSub (fun (dispatch: Message -> unit) ->
+      initFunction dispatch |> Async.Start)
 
   module Update =
     
@@ -173,6 +175,19 @@ module Launcher =
                         <| ((not state.IsInUpdate)
                             && not (state.Version = NotYeatCheck))
                         Button.onClick (fun _ -> dispatch StartUpdate) ]
+        
+      let buttonDownload (state: State) (dispatch: Message -> unit) =
+        Button.create [ Grid.column 8
+                        Grid.columnSpan 2
+                        Grid.row 8
+                        Button.isHitTestVisible true
+                        Button.classes [ "main"; "download" ]
+                        Button.content "Download"
+                        Button.isEnabled
+                        <| ((not state.IsInUpdate)
+                            && not (state.Version = NotYeatCheck)
+                            && not (state.StateDownloads.IsDownload))
+                        Button.onClick (fun _ -> dispatch StartDownload) ]
     
       let buttonFileCheck (state: State) (dispatch: Message -> unit) =
         Button.create [ Grid.column 8
@@ -212,6 +227,7 @@ module Launcher =
                                       TextBlocks.textBlockLauncherVersion state dispatch
                                       TextBlocks.textBlockDiskDescription state dispatch
                                       TextBlocks.textBlockDownloadsFile state dispatch
+                                      Buttons.buttonDownload state dispatch
                                       Buttons.buttonUpdate state dispatch
                                       Buttons.buttonFileCheck state dispatch
                                       RadioButtons.radioButtonYandex state dispatch

@@ -62,6 +62,10 @@
         <Setter Property="Margin" Value="0.0, 0.0, 5.0, 5.0"/>
     </Style>
     
+    <Style Selector="Button.download /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 5.0, 5.0, 5.0"/>
+    </Style>
+    
     <!-- Style for application name  -->
     
     <Style Selector="TextBlock.appname">
