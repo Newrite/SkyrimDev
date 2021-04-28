@@ -19,15 +19,23 @@ module Types =
     | NotYeatCheck
     
   type Message =
-  | SetDownloadedFile of string option
+  | SetCurrentDownloadFile of string option
   | IncreaseDownloadedCounter
-  | SetUpdateProgramProcess of string option
   | SetFilesToDownload of int
-  | StartUpdate
   | DownloadFinished
-  | SwitchDisk
   | StartDownload
+  
+  | SetCurrentDeleteFile of string option
+  | IncreaseDeletedCounter
+  | SetFilesToDelete of int
+  | DeleteFinished
+  | StartDelete
+  
+  | SetCurrentProgramProcess of string option
+  | StartUpdateLauncher
   | SetVersionLauncher of LauncherVersion
+  | SwitchDisk
+  | Finished
   
   type Disk =
     | YandexDisk
@@ -50,13 +58,20 @@ module Types =
   
   type StateDownloads =
     { DownloadedFile: string option
-      IsDownload: bool
+      IsInDownload: bool
       SumOfFileDownload: int
       CurrentDownloadProgress: float }
+    
+  type StateDeletes =
+    { DeletedFile: string option
+      IsInDelete: bool
+      SumOfFileDelete: int
+      CurrentDeleteProgress: float }
   
   type State =
     { IsInUpdate: bool
       StateDownloads: StateDownloads
+      StateDeletes: StateDeletes
       ProgrammProcess: string option
       Disk: Disk
       Version: LauncherVersion }

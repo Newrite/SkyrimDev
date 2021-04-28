@@ -7,6 +7,7 @@ open Saturn
 open Giraffe
 open System.IO
 open System.Collections.Generic
+open System.Collections.Concurrent
 open System.Security.Cryptography
 open System.Text.Json
 open Dropbox
@@ -111,7 +112,7 @@ module DiskRequests =
     new Client.Http.DiskHttpApi(Tokens.YandexToken)
 
   let private memoize (f: 'a -> 'b) =
-    let dict = Dictionary<'a, 'b * int64>()
+    let dict = ConcurrentDictionary<'a, 'b * int64>()
     let time () = System.DateTime.Now.Ticks / 10000000L
 
     let memoizedFunc (input: 'a) =
@@ -127,7 +128,7 @@ module DiskRequests =
           let answer = f input
 
           dict.TryAdd(input, (answer, time ()))
-          |> printfn "Try add key to memory %b"
+          |> ignore
 
           answer
 
