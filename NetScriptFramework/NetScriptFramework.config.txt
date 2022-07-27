@@ -1,0 +1,73 @@
+################################################################################
+#   Path to plugins                                                            #
+#                                                                              #
+# Relative or absolute path to plugin files.                                   #
+#                                                                              #
+#    Type: (string)                                                            #
+################################################################################
+
+Plugin.Path = "Data\NetScriptFramework\Plugins"
+
+################################################################################
+#   Path to plugin libraries                                                   #
+#                                                                              #
+# Relative or absolute path to plugin dependency libraries. You can place any  #
+# additional DLL files your plugin requires here. These DLL files will not     #
+# attempt to automatically load as plugins, you can also use DllImport         #
+# attribute and it will search for the DLL's in this path. Any .NET libraries  #
+# referenced by your plugin project will also search for them here.            #
+#                                                                              #
+#    Type: (string)                                                            #
+################################################################################
+
+Plugin.LibPath = "Data\NetScriptFramework\Plugins\Lib"
+
+################################################################################
+#   Enable crash logs                                                          #
+#                                                                              #
+# Enable writing crash logs when the game crashes.                             #
+#                                                                              #
+#    Type: (int32)                                                             #
+################################################################################
+
+Debug.CrashLog.Enabled = 1
+
+################################################################################
+#   Path to crash logs                                                         #
+#                                                                              #
+# The path where to write crash logs if enabled.                               #
+#                                                                              #
+#    Type: (string)                                                            #
+################################################################################
+
+Debug.CrashLog.Path = "Data\NetScriptFramework\Crash"
+
+################################################################################
+#   Append crash logs                                                          #
+#                                                                              #
+# Append all crash logs to same file or create a separate file for each crash. #
+#                                                                              #
+#    Type: (int32)                                                             #
+################################################################################
+
+Debug.CrashLog.Append = 0
+
+################################################################################
+#   Stack count                                                                #
+#                                                                              #
+# How many values to print from stack.                                         #
+#                                                                              #
+#    Type: (int32)                                                             #
+################################################################################
+
+Debug.CrashLog.StackCount = 512
+
+################################################################################
+#   Modules                                                                    #
+#                                                                              #
+# Write loaded modules of process to crash log?                                #
+#                                                                              #
+#    Type: (boolean)                                                           #
+################################################################################
+
+Debug.CrashLog.Modules = True

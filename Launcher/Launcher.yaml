@@ -1,0 +1,10 @@
+﻿Server:
+  dropboxURL: "https://api.juliarepository.space/1/dropbox"
+  yandexURL: "https://api.juliarepository.space/1/yandex"
+  modmapURL: "https://api.juliarepository.space/1/modmap"
+  serverStatusURL: "https://api.juliarepository.space/1/status"
+  launcherURL: "https://api.juliarepository.space/1/launcher"
+  tokenServer: "OMEGALULISPOWER!"
+  
+Launcher:
+  currentPath: ""

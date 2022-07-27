@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <!--<PublishTrimmed>true</PublishTrimmed>-->
+        <PublishReadyToRun>true</PublishReadyToRun>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+      <PlatformTarget>x64</PlatformTarget>
+      <WarningLevel>4</WarningLevel>
+      <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="Launcher.ini" />
+        <Compile Include="Types.fs" />
+        <Compile Include="Config.fs" />
+        <Compile Include="Logic.fs" />
+        <Compile Include="Shell.fs" />
+        <Compile Include="Program.fs" />
+        <AvaloniaResource Include="**\*.xaml" />
+        <AvaloniaResource Include="**\*.axaml" />
+        <Content Include="Launcher.yaml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Avalonia" Version="0.10.2" />
+      <PackageReference Include="Avalonia.Desktop" Version="0.10.2" />
+      <PackageReference Include="FSharp.Configuration" Version="2.0.0-alpha3" />
+      <PackageReference Include="FSharp.Data" Version="4.1.0" />
+      <PackageReference Include="FSharp.Json" Version="0.4.0" />
+      <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.5.0-beta" />
+      <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.5.0-beta" />
+      <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.5.0-beta" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="CLogger, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\..\CLogger\bin\Release\net5.0\CLogger.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>

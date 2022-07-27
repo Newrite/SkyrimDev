@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework> 
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>5</WarningLevel>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <PlatformTarget>x64</PlatformTarget>
+    <OtherFlags>--consolecolors --checked+ --sig:Signature.fsi</OtherFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>5</WarningLevel>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <PlatformTarget>x64</PlatformTarget>
+    <OtherFlags>--consolecolors --checked+ --sig:Signature.fsi</OtherFlags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Settings.fs" />
+    <Compile Include="Support.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wrapper\Wrapper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="NetScriptFramework">
+      <HintPath>..\NetScriptFramework\NetScriptFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="NetScriptFramework.SkyrimSE">
+      <HintPath>..\NetScriptFramework\NetScriptFramework.SkyrimSE.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

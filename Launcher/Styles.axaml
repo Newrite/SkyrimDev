@@ -1,0 +1,123 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <Style Selector="Window.mainwindow">
+        <Setter Property="Background" Value="#1C1C1C"/>
+        <Setter Property="FontWeight" Value="Heavy"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    <!--
+    <Style Selector="Window.test">
+        <Setter Property="Background">
+            <Setter.Value>
+                <ImageBrush Source="Skyrim.jpg" Stretch="UniformToFill"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="FontWeight" Value="Heavy"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>-->
+    
+    <!-- Style for main progress bar  -->
+    
+    <Style Selector="ProgressBar.downloadbar">
+        <Setter Property="Background" Value="#000000"/>
+        <Setter Property="BorderThickness" Value="1.0"/>
+        <Setter Property="BorderBrush" Value="#49678D"/>
+        <Setter Property="Foreground" Value="#336699"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <!-- Main style for all buttons  -->
+    
+    <Style Selector="Button /template/ ContentPresenter">
+        <Setter Property="CornerRadius" Value="0.0" />
+    </Style>
+    
+    <Style Selector="Button.main /template/ ContentPresenter">
+        <Setter Property="Background" Value="#336699"/>
+        <Setter Property="BorderBrush" Value="#2271B3"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <Style Selector="Button.main:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#49678D"/>
+    </Style>
+    
+    <Style Selector="Button.main:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#2271B3"/>
+    </Style>
+    
+    <!-- Extented style for Files check button  -->
+    
+    <Style Selector="Button.filescheck /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 0.0, 5.0, 5.0"/>
+    </Style>
+    
+    <!-- Extented style for update button  -->
+    
+    <Style Selector="Button.update /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 0.0, 5.0, 5.0"/>
+    </Style>
+    
+    <Style Selector="Button.download /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0.0, 5.0, 5.0, 5.0"/>
+    </Style>
+    
+    <!-- Style for application name  -->
+    
+    <Style Selector="TextBlock.appname">
+        <Setter Property="Margin" Value="10.0, 0.0, 0.0, 0.0"/>
+        <Setter Property="FontSize" Value="16.0"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="Height" Value="25.0"/>
+        <Setter Property="FontWeight" Value="UltraBlack"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <!-- Style for text current download file and current process -->
+    
+    <Style Selector="TextBlock.currentoperation">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="FontSize" Value="14.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="TextBlock.choosedisk">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="16.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="TextBlock.launcherupdate">
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="FontSize" Value="14.0"/>
+        <Setter Property="Margin" Value="15.0, 0.0, 0.0, 0.0"/>
+        <Setter Property="FontWeight" Value="Black"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <Style Selector="TextBlock.path">
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="FontSize" Value="12.0"/>
+        <Setter Property="Margin" Value="15.0, 0.0, 0.0, 0.0"/>
+        <Setter Property="FontWeight" Value="Regular"/>
+        <Setter Property="FontStyle" Value="Normal"/>
+    </Style>
+    
+    <!-- Style for radio buttons disk -->
+    
+    <Style Selector="TextBlock.diskradio">
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+    
+</Styles>

@@ -1,0 +1,46 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "5bc844ea-cc2b-4e0c-86c1-c7e422cff4c0": {
+      "ProjectGuid": "5bc844ea-cc2b-4e0c-86c1-c7e422cff4c0",
+      "DisplayName": "Patcher",
+      "ColorIndex": 0
+    },
+    "1760c9b1-57dc-4ae7-b4bd-f47d30ef1d21": {
+      "ProjectGuid": "1760c9b1-57dc-4ae7-b4bd-f47d30ef1d21",
+      "DisplayName": "Launcher",
+      "ColorIndex": 1
+    },
+    "1237550a-3f1b-4808-878c-5cca845bd398": {
+      "ProjectGuid": "1237550a-3f1b-4808-878c-5cca845bd398",
+      "DisplayName": "Supporter",
+      "ColorIndex": 2
+    },
+    "4443a4d2-7fc6-4027-8995-b57815084a8a": {
+      "ProjectGuid": "4443a4d2-7fc6-4027-8995-b57815084a8a",
+      "DisplayName": "ArcaneCurse",
+      "ColorIndex": 3
+    },
+    "12225d64-d062-4a03-bcfd-74a689275ed5": {
+      "ProjectGuid": "12225d64-d062-4a03-bcfd-74a689275ed5",
+      "DisplayName": "Wrapper",
+      "ColorIndex": 4
+    },
+    "7b2e74ee-2113-4714-8897-28ff33b0746f": {
+      "ProjectGuid": "7b2e74ee-2113-4714-8897-28ff33b0746f",
+      "DisplayName": "ResourceManager",
+      "ColorIndex": 5
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "Miscellaneous Files",
+      "ColorIndex": -1
+    },
+    "2bf716b4-224f-4c9e-9c58-cd7d87354209": {
+      "ProjectGuid": "2bf716b4-224f-4c9e-9c58-cd7d87354209",
+      "DisplayName": "Server",
+      "ColorIndex": 6
+    }
+  },
+  "NextColorIndex": 7
+}

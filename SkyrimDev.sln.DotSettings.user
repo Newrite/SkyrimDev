@@ -1,0 +1,24 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CCLogger_005Cbin_005CRelease_005Cnet5_002E0_005CCLogger_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CClassLibrary1_005CNetScriptFramework_005CNetScriptFramework_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CClassLibrary1_005CNetScriptFramework_005CNetScriptFramework_002ESkyrimSE_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CClassLibrary2_005CNetScriptFramework_005CNetScriptFramework_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CClassLibrary2_005CNetScriptFramework_005CNetScriptFramework_002ESkyrimSE_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CTest_005CNetScriptFramework_005CNetScriptFramework_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=E_003A_005CProgramming_005CF_0023_005CSkyrimDev_005CTest_005CNetScriptFramework_005CNetScriptFramework_002ESkyrimSE_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=G_003A_005CProgramming_005CLanguages_005CF_0023_005CSkyrimDev_005CNetScriptFramework_005CNetScriptFramework_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=G_003A_005CProgramming_005CLanguages_005CF_0023_005CSkyrimDev_005CNetScriptFramework_005CNetScriptFramework_002ESkyrimSE_002Edll/@EntryIndexedValue">True</s:Boolean>
+	<s:String x:Key="/Default/CodeInspection/Highlighting/SweaWarningsMode/@EntryValue">DoNotShowAndRun</s:String>
+	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/ActualSeverity/@EntryValue">INFO</s:String>
+	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=CodeStyle/@EntryIndexedValue">On</s:String>
+	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=NamingFilter/@EntryIndexedValue">On</s:String>
+	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/FiltersState/=SpellingFilter/@EntryIndexedValue">On</s:String>
+	<s:String x:Key="/Default/CodeInspection/PencilsConfiguration/Storage/@EntryValue">ThisComputer</s:String>
+	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
+  &lt;Assembly Path="E:\Programming\F#\SkyrimDev\ClassLibrary1\NetScriptFramework\NetScriptFramework.SkyrimSE.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\nirn2\.nuget\packages\mutagen.bethesda.formkeys.skyrimse\1.0.0\lib\netstandard2.1\Mutagen.Bethesda.FormKeys.SkyrimSE.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\nirn2\.nuget\packages\avalonia\0.10.2\lib\netcoreapp2.0\Avalonia.Visuals.dll" /&gt;&#xD;
+  &lt;Assembly Path="E:\Programming\F#\CLogger\bin\Release\net5.0\CLogger.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\nirn2\.nuget\packages\fsharp.configuration\2.0.0-alpha3\lib\netstandard2.0\FSharp.Configuration.Runtime.dll" /&gt;&#xD;
+&lt;/AssemblyExplorer&gt;</s:String>
+	<s:Boolean x:Key="/Default/Environment/InlayHints/GeneralInlayHintsOptions/EnableInlayHints/@EntryValue">True</s:Boolean></wpf:ResourceDictionary>
