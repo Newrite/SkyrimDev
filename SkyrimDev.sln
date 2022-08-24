@@ -13,7 +13,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Supporter", "Supporter\Supp
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "BloodMagick", "BloodMagick\BloodMagick.fsproj", "{7449E79B-F13E-40F3-AAB0-772F9E388D77}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Reflyem", "BloodSpells\Reflyem.fsproj", "{2E96A7F8-9E4C-4727-B263-F1A0DC4AD6FB}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Reflyem", "Reflyem\Reflyem.fsproj", "{2E96A7F8-9E4C-4727-B263-F1A0DC4AD6FB}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SpellFury", "SpellFury\SpellFury.fsproj", "{64A746A8-338F-48C0-B845-709B570BA5B4}"
 EndProject
