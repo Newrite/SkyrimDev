@@ -1,6 +1,5 @@
-﻿namespace BloodMagick
+﻿namespace Reflyem
 
-open NetScriptFramework
 open NetScriptFramework.SkyrimSE
 open Wrapper
 open Supporter
@@ -15,22 +14,12 @@ module private InternalBloodSpells =
 
   let magFailSoundId = uint32 0x3D0D3
 
-  let bloodMagickAbilityId = uint32 0x23F6CCu
-
   let skyrim = @"Skyrim.esm"
-
-  let bloodMagickMod = "Requiem - Breaking Bad.esp"
 
   let castHealthTreshold = 15.f
 
-  let bloodMagickAbility() = Call.TESFormLookupFormFromFile(bloodMagickAbilityId, bloodMagickMod) :?> SpellItem
-
-  let Log = Log.Init "BloodMagick"
-
-open InternalBloodSpells
-
 [<RequireQualifiedAccess>]
-module BloodMagickPlugin =
+module BloodSpellsPlugin =
 
   module Domen =
   
@@ -79,7 +68,7 @@ module BloodMagickPlugin =
           actor.DamageActorValue(ActorValueIndices.Health, -self.Cost)
           self.Accum <- self.Accum + self.Cost
 
-    [<NoComparison>]
+    
     type CastsHandHandler =
       { Caster: Actor
         DualCast: CastCostHandler
@@ -170,13 +159,17 @@ module BloodMagickPlugin =
         | :? SpellItem as s -> s.SpellData.SpellType = SpellTypes.Spell
         | _ -> false
 
-    let isActorMagicCasterValidAndUnderBloodMagick (caster: ActorMagicCaster) (magicItem: MagicItem) =
+    let isActorMagicCasterValidAndIsSpellBloodSpell (caster: ActorMagicCaster) (magicItem: MagicItem) =
       caster <> null && caster.IsValid && caster.Owner <> null && caster.Owner.IsValid 
-      && magicItemNotNullAndIsSpell magicItem && caster.Owner.HasSpell(bloodMagickAbility())
-    
-    let isActorValidAndUnderBloodMagick (actor: Actor) (magicItem: MagicItem) =
+      && magicItemNotNullAndIsSpell magicItem && magicItem.HasKeyword(RefConfig.BloodSpellsKwd.Value)
+
+    let isMagicCasterValidAndIsSpellBloodSpell (magicCaster: MagicCaster) (magicItem: MagicItem) =
+      magicCaster <> null && magicCaster.IsValid && magicItemNotNullAndIsSpell magicItem 
+      && magicItem.HasKeyword(RefConfig.BloodSpellsKwd.Value)
+
+    let isActorValidAndIsSpellBloodSpell (actor: Actor) (magicItem: MagicItem) =
       actor <> null && actor.IsValid && magicItemNotNullAndIsSpell magicItem 
-      && actor.HasSpell(bloodMagickAbility())
+      && magicItem.HasKeyword(RefConfig.BloodSpellsKwd.Value)
 
     let asyncHandleRestore amountRestore (caster: Actor) = async {
       let mutable alreadyRestore = 0.f
@@ -192,13 +185,12 @@ module BloodMagickPlugin =
   let mutable menuState = Domen.MenuState.WaitOpen
 
   let init() =
-    let bm = bloodMagickAbility()
-    if bm <> null && bm.IsValid then
-      Log <| sprintf "BloodMagick Ok"
-      true
-    else
-      Log <| sprintf "BloodMagick null ability"
+    if RefConfig.BloodSpellsKwd.IsNone then
+      Log <| sprintf "Keyword for blood spells is None"
       false
+    else
+      Log <| sprintf "Bloodspells Ok"
+      true
 
   let onInterruptCast (eArg: InterruptCastEventArgs )=
     //Log <| sprintf "In interrapt cast"
@@ -233,11 +225,10 @@ module BloodMagickPlugin =
     for key in castersDict.Keys do
       let castHandler, _ = castersDict[key]
 
-      if castHandler.Caster <> null && castHandler.Caster.IsValid 
-         && castHandler.Caster.HasSpell(bloodMagickAbility()) && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold then
+      if castHandler.Caster <> null && castHandler.Caster.IsValid && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold then
         for caster in castHandler.Caster.MagicCasters do
-          let validCaster = caster <> null && caster.IsValid
-          if validCaster && caster.State = MagicCastingStates.Concentrating then
+          let validCaster = caster <> null && caster.IsValid && caster.CastItem <> null && caster.CastItem.IsValid
+          if validCaster && caster.State = MagicCastingStates.Concentrating && caster.CastItem.HasKeyword(RefConfig.BloodSpellsKwd.Value) then
             caster.InterruptCast()
             Functions.failCast()
 
@@ -276,7 +267,16 @@ module BloodMagickPlugin =
 
   let onCalculateMagickCost (eArg: CalculateMagicCostEventArgs) =
 
-    let allow = Functions.isActorValidAndUnderBloodMagick eArg.Caster eArg.Item && Functions.isConcentrationSpell eArg.Item |> not
+    let allow = 
+      let check =
+        Functions.isActorValidAndIsSpellBloodSpell eArg.Caster eArg.Item 
+        && Functions.isConcentrationSpell eArg.Item |> not
+
+      if check then
+        let playerOnly = if RefConfig.BloodSpellsOnlyPlayer then eArg.Caster.IsPlayer else true
+        check && playerOnly
+      else
+        check
 
     if not allow then
       ()
@@ -301,9 +301,13 @@ module BloodMagickPlugin =
 
   let onSpendMagicCost (eArg: SpendMagicCostEventArgs) =
 
-    let validAndBaseAllow = Functions.isActorMagicCasterValidAndUnderBloodMagick eArg.Spender eArg.Item
+    let validAndBaseAllow = Functions.isActorMagicCasterValidAndIsSpellBloodSpell eArg.Spender eArg.Item
 
     if not validAndBaseAllow then
+      ()
+    else
+
+    if RefConfig.BloodSpellsOnlyPlayer && not eArg.Spender.Owner.IsPlayer then
       ()
     else
 
@@ -353,93 +357,26 @@ module BloodMagickPlugin =
         castHandler.LeftCast.StartWorking numIter costForIter
 
   let onMagicCasterFire (eArg: MagicCasterFireEventArgs) =
-    
-    match eArg.Caster with
-    | :? ActorMagicCaster as actorMagicCaster 
-      when actorMagicCaster <> null && actorMagicCaster.IsValid && actorMagicCaster.Owner <> null && actorMagicCaster.Owner.IsValid
-        && Functions.isActorMagicCasterValidAndUnderBloodMagick actorMagicCaster eArg.Item
-        && Functions.isConcentrationSpell eArg.Item |> not 
-        && castersDict.ContainsKey(actorMagicCaster.Owner.Address) ->
+    if Functions.isMagicCasterValidAndIsSpellBloodSpell eArg.Caster eArg.Item 
+       && Functions.isConcentrationSpell eArg.Item |> not then
 
-        let castHandler, _ = castersDict[actorMagicCaster.Owner.Address]
+      match eArg.Caster with
+      | :? ActorMagicCaster as c when c <> null 
+          && c.IsValid && c.Owner <> null && c.Owner.IsValid 
+          && castersDict.ContainsKey(c.Owner.Address) ->
+
+        if RefConfig.BloodSpellsOnlyPlayer && c.Owner.IsPlayer |> not then
+          ()
+        else
+
+        let castHandler, _ = castersDict[c.Owner.Address]
 
         castHandler.DualCast.ResetToWork()
 
-        if actorMagicCaster.ActorCasterType = EquippedSpellSlots.RightHand then
+        if c.ActorCasterType = EquippedSpellSlots.RightHand then
           castHandler.RightCast.ResetToWork()
 
-        if actorMagicCaster.ActorCasterType = EquippedSpellSlots.LeftHand then
+        if c.ActorCasterType = EquippedSpellSlots.LeftHand then
           castHandler.LeftCast.ResetToWork()
 
-    | _ -> ()
-
-
-type BloodMagickPlugin() =
-
-  inherit Plugin()
-  let mutable modInit = false
-  let mutable lastTime10ms = 0L
-  let timer = Tools.Timer()
-
-  override _.Key = "bloodmagick"
-  override _.Name = "Blood Magick"
-  override _.Author = "newrite"
-  override _.RequiredLibraryVersion = 10
-  override _.Version = 1
-
-
-  override self.Initialize _ =
-    self.init()
-    true
-      
-  member private _.init() =
-    
-    Events.OnMainMenu.Register(fun _ ->
-      if not modInit then
-        modInit <- BloodMagickPlugin.init()
-        timer.Start()
-      ) |> ignore
-
-    Events.OnFrame.Register(fun _ ->
-
-      if modInit then
-        
-        let now = timer.Time
-
-        BloodMagickPlugin.onFrameAlways()
-
-        if now - lastTime10ms >= 10 then
-          BloodMagickPlugin.onFrame10ms()
-          lastTime10ms <- now
-
-      ) |> ignore
-
-
-    Events.OnInterruptCast.Register(fun eArg ->
-
-      if modInit then
-        BloodMagickPlugin.onInterruptCast eArg
-
-      ) |> ignore
-  
-    Events.OnCalculateMagicCost.Register(fun eArg ->
-
-      if modInit then
-        BloodMagickPlugin.onCalculateMagickCost eArg
-
-      ) |> ignore
-    
-    Events.OnSpendMagicCost.Register(fun eArg ->
-
-      if modInit then
-        BloodMagickPlugin.onSpendMagicCost eArg
-
-      ) |> ignore
-    
-    Events.OnMagicCasterFire.Register(fun eArg ->
-
-      if modInit then
-        BloodMagickPlugin.onMagicCasterFire eArg
-
-      ) |> ignore
-
+      | _ -> ()

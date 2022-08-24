@@ -27,17 +27,17 @@ namespace ArcaneCurse
         val fullSummonKeyword: string
         
         val (|HalfDamage|FullDamage|HalfCost|FullCost|HalfSummon|FullSummon|NoFind|) :
-          player: NetScriptFramework.SkyrimSE.PlayerCharacter
-            -> Choice<unit,unit,unit,unit,unit,unit,unit>
+          player: NetScriptFramework.SkyrimSE.PlayerCharacter ->
+            Choice<unit,unit,unit,unit,unit,unit,unit>
         
         val (|Hetot|_|) :
           player: NetScriptFramework.SkyrimSE.PlayerCharacter -> unit option
         
         val handleGlobals:
-          gDamage: NetScriptFramework.SkyrimSE.TESGlobal
-          -> gCost: NetScriptFramework.SkyrimSE.TESGlobal
-          -> gSummon: NetScriptFramework.SkyrimSE.TESGlobal
-          -> player: NetScriptFramework.SkyrimSE.PlayerCharacter -> unit
+          gDamage: NetScriptFramework.SkyrimSE.TESGlobal ->
+            gCost: NetScriptFramework.SkyrimSE.TESGlobal ->
+            gSummon: NetScriptFramework.SkyrimSE.TESGlobal ->
+            player: NetScriptFramework.SkyrimSE.PlayerCharacter -> unit
     
     module private OnSpellCast =
         
@@ -83,12 +83,12 @@ namespace ArcaneCurse
            NetScriptFramework.SkyrimSE.ActorValueIndices)[]
         
         val getCurseMult:
-          actor: #NetScriptFramework.SkyrimSE.Actor
-          -> av: NetScriptFramework.SkyrimSE.ActorValueIndices -> float32
+          actor: #NetScriptFramework.SkyrimSE.Actor ->
+            av: NetScriptFramework.SkyrimSE.ActorValueIndices -> float32
         
         val getCurseValue:
-          formID: uint32 -> actor: #NetScriptFramework.SkyrimSE.Actor
-            -> CursesValue option
+          formID: uint32 ->
+            actor: #NetScriptFramework.SkyrimSE.Actor -> CursesValue option
         
         val applyCurse: ctx: ContextMagicCast -> unit
         

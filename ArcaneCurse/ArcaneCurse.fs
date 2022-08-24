@@ -344,6 +344,8 @@ type ArcaneCursePlugin() =
                 | Some _ -> Log <| sprintf "Success load DebuffSpell"
                 | None -> Log <| sprintf "Fail load DebuffSpell in MainMenu - it ok"
 
+                timer.Start()
+
                 modInit <- true), flags = EventRegistrationFlags.Distinct) |> ignore
 
         ()

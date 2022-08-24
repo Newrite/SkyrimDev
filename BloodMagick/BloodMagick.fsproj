@@ -19,13 +19,12 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <Compile Include="Settings.fs" />
         <Compile Include="BloodMagick.fs" />
     </ItemGroup>
-
+    
     <ItemGroup>
-        <ProjectReference Include="..\Supporter\Supporter.fsproj" />
-        <ProjectReference Include="..\Wrapper\Wrapper.csproj" />
+      <ProjectReference Include="..\Supporter\Supporter.fsproj" />
+      <ProjectReference Include="..\Wrapper\Wrapper.csproj" />
     </ItemGroup>
 
     <ItemGroup>

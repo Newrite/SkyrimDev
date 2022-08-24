@@ -36,6 +36,9 @@ type public Settings() =
     let mutable eventReloadStop = 0x80Bu
     let mutable eventWeapEquipOut = 0x80Cu
 
+    let mutable fDiffMultHPByPCLGlobId = 0x81Du
+    let mutable fDiffMultHPToPCLGlobId = 0x81Cu
+
     let mutable modName = "Newrite_NETScriptLibs.esp"
 
     [<ConfigValue("ModName", "Mod name where FormIDs", "Form id gets from this file")>]
@@ -166,6 +169,16 @@ type public Settings() =
     member private self.EventWeapEquipOut
         with get() = eventWeapEquipOut
         and set id = eventWeapEquipOut <- id
+
+    [<ConfigValue("DiffMultHPByPCLGlobId", "Global with gamesettings mult damage by player", "Global has value of GameSetting - fDiffMultHPByPCL", ConfigEntryFlags.PreferHex)>]
+    member private self.DiffMultHPByPCLGlobId
+        with get() = fDiffMultHPByPCLGlobId
+        and set id = fDiffMultHPByPCLGlobId <- id
+    
+    [<ConfigValue("DiffMultHPToPCLGlobId", "Global with gamesettings mult damage to player", "Global has value of GameSetting - fDiffMultHPToPCL", ConfigEntryFlags.PreferHex)>]
+    member private self.DiffMultHPToPCLGlobId
+        with get() = fDiffMultHPToPCLGlobId
+        and set id = fDiffMultHPToPCLGlobId <- id
     
     // for PLAYER
     member self.GlobalWeaponSwingLeft = 
@@ -288,6 +301,16 @@ type public Settings() =
     member self.SpellWeapEquipOut =
         match Call.TESFormLookupFormFromFile(self.EventWeapEquipOut, self.ModName) with
         | :? SpellItem as spell -> Some spell
+        | _ -> None
+
+    member self.GameSettingDamageByPlayer =
+        match Call.TESFormLookupFormFromFile(self.DiffMultHPByPCLGlobId, self.ModName) with
+        | :? TESGlobal as globalValue -> Some globalValue
+        | _ -> None
+
+    member self.GameSettingDamageToPlayer =
+        match Call.TESFormLookupFormFromFile(self.DiffMultHPToPCLGlobId, self.ModName) with
+        | :? TESGlobal as globalValue -> Some globalValue
         | _ -> None
 
 

@@ -34,6 +34,8 @@ type public Settings() =
     let mutable healthSoulsON = false
     let mutable magickaSoulsON = false
 
+    let mutable experimental = false
+
     let mutable arrowBoltReleaseSpellID = 0x808u
 
     let mutable crossbowPerkID = 0x17b8c1u
@@ -167,6 +169,10 @@ type public Settings() =
         with get() = keywordArrowWeightMassiveID
         and set id = keywordArrowWeightMassiveID <- id
 
+    [<ConfigValue("ExperimentalON", "Experemental", "If on, activate blockShield and recalc for bash cost")>]
+    member self.Experimental
+        with get() = experimental
+        and set bool = experimental <- bool
 
     member self.StaminaToMagicka = Call.TESFormLookupFormFromFile(self.KeywordStaminaToMagicka, self.ModName) :?> BGSKeyword
 

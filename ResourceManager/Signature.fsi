@@ -42,6 +42,12 @@ namespace ResourceManager
         member private CrossbowPerkID: uint32
         
         [<NetScriptFramework.Tools.ConfigValue
+          ("ExperimentalON", "Experemental",
+           "If on, activate blockShield and recalc for bash cost",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member Experimental: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
           ("GlobalJumpValue", "Global jump cost id",
            "Global variable flat jump cost",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
@@ -238,10 +244,10 @@ namespace ResourceManager
             | HealthMagickaStamina
             
             static member
-              EvalActorValue: actor: NetScriptFramework.SkyrimSE.Actor
-                              -> weap: NetScriptFramework.SkyrimSE.TESObjectWEAP
-                                -> NetScriptFramework.SkyrimSE.TESObjectWEAP *
-                                   DrainValue
+              EvalActorValueForm: actor: NetScriptFramework.SkyrimSE.Actor ->
+                                    form: 'a -> 'a * DrainValue
+                                    when 'a :>
+                                              NetScriptFramework.SkyrimSE.TESForm
         
         [<RequireQualifiedAccess>]
         type AttackState =
@@ -311,18 +317,20 @@ namespace ResourceManager
           weap: NetScriptFramework.SkyrimSE.TESObjectWEAP -> float32
         
         val evalDrainMelee:
-          ctx: Context -> isPowerAttack: bool
-          -> weap: NetScriptFramework.SkyrimSE.TESObjectWEAP -> float32
+          ctx: Context ->
+            isPowerAttack: bool ->
+            weap: NetScriptFramework.SkyrimSE.TESObjectWEAP -> float32
         
         val evalDrainRanged:
-          ctx: Context -> weap: NetScriptFramework.SkyrimSE.TESObjectWEAP
-            -> float32
+          ctx: Context ->
+            weap: NetScriptFramework.SkyrimSE.TESObjectWEAP -> float32
         
         val UpdateCache: (nativeint -> Attacker -> Attacker)
         
         val DrainsHandler:
-          attk: Attacker -> drainAmount: float32 -> actorValueDrain: DrainValue
-          -> attackType: WeaponType -> unit
+          attk: Attacker ->
+            drainAmount: float32 ->
+            actorValueDrain: DrainValue -> attackType: WeaponType -> unit
         
         val ResourceManagerHandler: ctx: Context -> unit
     

@@ -6,6 +6,11 @@ open NetScriptFramework.Tools
 open Wrapper
 open Supporter
 
+open Extensions
+open NetScriptFramework.SkyrimSE
+
+#nowarn "52"
+
 [<AutoOpen>]
 module private InternalVariables =
     let Log = Log.Init "Resource Manager"
@@ -100,8 +105,10 @@ module private Manager =
             0.f
 
     let private evalWeaponWeight (weap: TESObjectWEAP) =
-        if weap.WeightValue = 0.f then
+        if weap.WeightValue <= 0.f  && weap.AttackDamage > 0us then
             float32(weap.AttackDamage) * 0.2f * Settings.WeightMult().FloatValue
+        elif weap.WeightValue <= 0.f && weap.WeaponCriticalData <> null then
+            float32(weap.WeaponCriticalData.Damage) * Settings.WeightMult().FloatValue
         else 
             weap.WeightValue * Settings.WeightMult().FloatValue
 
@@ -162,20 +169,19 @@ module private Manager =
     // Type Extension ///
     type DrainValue with
         
-        static member EvalActorValue (actor: Actor) (weap: TESObjectWEAP) =
+        static member EvalActorValueForm (actor: Actor) (form: #TESForm) =
             
-            let staminaToHealth =
-                actor.WornHasKeyword(Settings.StaminaToHealth) || actor.HasKeyword(Settings.StaminaToHealth)
-            let staminaToMagick =
-                actor.WornHasKeyword(Settings.StaminaToMagicka) || actor.HasKeyword(Settings.StaminaToMagicka)
-            let healthToStamina =
-                actor.WornHasKeyword(Settings.HealthToStamina) || actor.HasKeyword(Settings.HealthToStamina)
-            let magickaToStamina =
-                actor.WornHasKeyword(Settings.MagickaToStamina) || actor.HasKeyword(Settings.MagickaToStamina)
-            let healthToMagicka =
-                actor.WornHasKeyword(Settings.HealthToMagicka) || actor.HasKeyword(Settings.HealthToMagicka)
-            let magickaToHealth =
-                actor.WornHasKeyword(Settings.MagickaToHealth) || actor.HasKeyword(Settings.MagickaToHealth)
+            let staminaToHealth = actor.HasAbsoluteKeyword(Settings.StaminaToHealth)
+
+            let staminaToMagick = actor.HasAbsoluteKeyword(Settings.StaminaToMagicka)
+
+            let healthToStamina = actor.HasAbsoluteKeyword(Settings.HealthToStamina)
+
+            let magickaToStamina = actor.HasAbsoluteKeyword(Settings.MagickaToStamina)
+
+            let healthToMagicka = actor.HasAbsoluteKeyword(Settings.HealthToMagicka)
+
+            let magickaToHealth = actor.HasAbsoluteKeyword(Settings.MagickaToHealth)
 
             let weapMask : int[,] = Array2D.zeroCreate 1 3
             let actorMask : int[,] =
@@ -183,16 +189,16 @@ module private Manager =
                     ^fun i1 i2 ->
                         if i1 = i2 then 1 else 0
 
-            Log <| sprintf "Start masks weap: %A actor: %A" weapMask actorMask
+            //Log <| sprintf "Start masks weap: %A actor: %A" weapMask actorMask
 
             weapMask.[0,0] <- 1
-            if weap.HasKeyword(KeywordHealthDrain()) then
+            if form.HasKeyword <| KeywordHealthDrain() then
                 weapMask.[0,0] <- 0
                 weapMask.[0,1] <- 1
-            if weap.HasKeyword(KeywordMagickaDrain()) then
+            if form.HasKeyword <| KeywordMagickaDrain() then
                 weapMask.[0,0] <- 0
                 weapMask.[0,2] <- 1
-            if weap.HasKeyword(KeywordStaminaDrain()) then
+            if form.HasKeyword <| KeywordStaminaDrain() then
                 weapMask.[0,0] <- 1
 
             if staminaToHealth then
@@ -208,7 +214,7 @@ module private Manager =
             if magickaToStamina then
                actorMask.[2,*] <- [|1;0;0|]
 
-          (*    WeapMask
+          (*    FormMask
                ST HP MP
               [1  0  0 ]   *)
 
@@ -241,20 +247,20 @@ module private Manager =
 
             
 
-            Log <| sprintf "After masks weap: %A actor: %A mask: %A" weapMask actorMask mask
-            Log <| sprintf "Mask Sum %A" maskSum
+            //Log <| sprintf "After masks weap: %A actor: %A mask: %A" weapMask actorMask mask
+            //Log <| sprintf "Mask Sum %A" maskSum
 
             match maskSum with
-            |1 -> weap, Stamina
-            |2 -> weap, Health
-            |4 -> weap, Magicka 
-            |3 -> weap, HealthStamina
-            |5 -> weap, MagickaStamina
-            |6 -> weap, HealthMagicka
-            |7 -> weap, HealthMagickaStamina
+            |1 -> form, Stamina
+            |2 -> form, Health
+            |4 -> form, Magicka 
+            |3 -> form, HealthStamina
+            |5 -> form, MagickaStamina
+            |6 -> form, HealthMagicka
+            |7 -> form, HealthMagickaStamina
             |_ ->
                 Log <| sprintf "Incorrect sum of mask"
-                weap, Stamina
+                form, Stamina
 
     // Public Functions ///
     let UpdateCache =
@@ -483,6 +489,8 @@ module private Manager =
                 updateNoState()
             |_ -> ()
 
+
+
 type public ResourceManagerPlugin() =
 
     inherit Plugin()
@@ -506,7 +514,7 @@ type public ResourceManagerPlugin() =
         |true -> ()
         |false -> Log <| sprintf "Can't load settings"
 
-        ExtEvent.OnAnimationEvent.AddHandler(new ExtEvent.AnimDelegate(fun _ args ->
+        ExtEvent.OnAnimation.AddHandler(new ExtEvent.AnimationDelegate(fun _ args ->
 
             if init then
 
@@ -539,49 +547,252 @@ type public ResourceManagerPlugin() =
                 let handler = contextBuilder>>Manager.ResourceManagerHandler
             
 
-                match args.Anim with
-                | OnAnimation.WeaponSwingLeft ->
+                match args.Animation with
+                | ExtEvent.Animations.WeaponSwingLeft ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Left)
                     |> Option.defaultValue Settings.UnarmedWeapon
-                    |> Manager.DrainValue.EvalActorValue args.Source
+                    |> Manager.DrainValue.EvalActorValueForm args.Source
                     |> (Manager.AnimationAction.Attack>>handler)
 
-                | OnAnimation.WeaponSwingLeftPower ->
+                | ExtEvent.Animations.WeaponSwingLeftPower ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Left)
                     |> Option.defaultValue Settings.UnarmedWeapon
-                    |> Manager.DrainValue.EvalActorValue args.Source
+                    |> Manager.DrainValue.EvalActorValueForm args.Source
                     |> (Manager.AnimationAction.PowerAttack>>handler)
 
-                | OnAnimation.WeaponSwingRight ->
+                | ExtEvent.Animations.WeaponSwingRight ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Right)
                     |> Option.defaultValue Settings.UnarmedWeapon
-                    |> Manager.DrainValue.EvalActorValue args.Source
+                    |> Manager.DrainValue.EvalActorValueForm args.Source
                     |> (Manager.AnimationAction.Attack>>handler)
 
-                | OnAnimation.WeaponSwingRightPower ->
+                | ExtEvent.Animations.WeaponSwingRightPower ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Right)
                     |> Option.defaultValue Settings.UnarmedWeapon
-                    |> Manager.DrainValue.EvalActorValue args.Source
+                    |> Manager.DrainValue.EvalActorValueForm args.Source
                     |> (Manager.AnimationAction.PowerAttack>>handler)
 
-                | OnAnimation.Jump -> Manager.AnimationAction.Jump |> handler
-                | OnAnimation.BowDraw ->
+                | ExtEvent.Animations.Jump -> Manager.AnimationAction.Jump |> handler
+                | ExtEvent.Animations.BowDraw ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Right)
                     |> Option.iter ^fun weap ->
-                        Manager.DrainValue.EvalActorValue args.Source weap
+                        Manager.DrainValue.EvalActorValueForm args.Source weap
                         |>(Manager.AnimationAction.BowDraw>>handler)
 
-                | OnAnimation.ArrowRelease -> Manager.AnimationAction.ArrowRelease |> handler
-                | OnAnimation.BowReset -> Manager.AnimationAction.BowReset |> handler
-                | OnAnimation.BoltRelease -> Manager.AnimationAction.BoltRelease |> handler
-                | OnAnimation.ReloadStart ->
+                | ExtEvent.Animations.ArrowRelease -> Manager.AnimationAction.ArrowRelease |> handler
+                | ExtEvent.Animations.BowReset -> Manager.AnimationAction.BowReset |> handler
+                | ExtEvent.Animations.BoltRelease -> Manager.AnimationAction.BoltRelease |> handler
+                | ExtEvent.Animations.ReloadStart ->
                     args.Source.GetEquippedWeapon(WeaponSlot.Right)
                     |> Option.iter ^fun weap ->
-                        Manager.DrainValue.EvalActorValue args.Source weap
+                        Manager.DrainValue.EvalActorValueForm args.Source weap
                         |>(Manager.AnimationAction.ReloadStart>>handler)
 
-                | OnAnimation.ReloadStop -> Manager.AnimationAction.ReloadStop |> handler
-                | OnAnimation.WeapEquipOut -> Manager.AnimationAction.WeapEquipOut |> handler ))
+                | ExtEvent.Animations.ReloadStop -> Manager.AnimationAction.ReloadStop |> handler
+                | ExtEvent.Animations.WeapEquipOut -> Manager.AnimationAction.WeapEquipOut |> handler ))
+
+        ExtEvent.OnHitWeapon.Add(fun e ->
+
+          //Log "HitWeapon"
+          //Log <| sprintf "ExpFlag: %b" Settings.Experimental
+
+          let formForCalc (actor: Actor): TESForm =
+           if actor.EquippedShield <> null && actor.EquippedShield.IsValid then
+              actor.EquippedShield
+            else
+              match actor.GetEquippedWeapon(WeaponSlot.Right) with
+              | Some weap -> weap
+              | None -> Settings.UnarmedWeapon
+
+          if e.Attacked <> null && e.Attacked.IsValid && Settings.Experimental && e.HitData <> null && e.HitData.IsValid then
+            //Log "ValidHit"
+            let isBlocked = e.HitData.HitFlag.HasFlag(HitData.HitFlags.Blocked)
+
+            if not isBlocked then
+              //Log "NotBlocked"
+              ()
+            else
+            //Log "Blocked"
+
+            let form = formForCalc e.Attacked
+            let magicka = e.Attacked.GetActorValue(ActorValueIndices.Magicka)
+            let health = e.Attacked.GetActorValue(ActorValueIndices.Health)
+            let stamina = e.Attacked.GetActorValue(ActorValueIndices.Stamina)
+            match Manager.DrainValue.EvalActorValueForm e.Attacked form with
+            | _, Manager.DrainValue.Stamina ->
+              if e.ResultDamage >= stamina then
+                e.ResultDamage <- e.ResultDamage - stamina
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -stamina)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -e.ResultDamage)
+                e.ResultDamage <- 0.f
+
+            | _, Manager.DrainValue.Health ->
+              if e.ResultDamage >= health then
+                e.ResultDamage <- e.ResultDamage - health
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -health)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -e.ResultDamage)
+                e.ResultDamage <- 0.f
+
+            | _, Manager.DrainValue.Magicka ->
+              if e.ResultDamage >= magicka then
+                e.ResultDamage <- e.ResultDamage - magicka
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -magicka)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -e.ResultDamage)
+                e.ResultDamage <- 0.f
+
+            | _, Manager.DrainValue.HealthStamina ->
+
+              let partDamage = e.ResultDamage * 0.5f
+
+              if partDamage >= health then
+                e.ResultDamage <- e.ResultDamage - (partDamage - health)
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -health)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+              if partDamage >= stamina then
+                e.ResultDamage <- e.ResultDamage - (partDamage - stamina)
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -stamina)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+            | _, Manager.DrainValue.HealthMagicka ->
+
+              let partDamage = e.ResultDamage * 0.5f
+
+              if partDamage >= health then
+                e.ResultDamage <- e.ResultDamage - (partDamage - health)
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -health)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+              if partDamage >= magicka then
+                e.ResultDamage <- e.ResultDamage - (partDamage - magicka)
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -magicka)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+            | _, Manager.DrainValue.MagickaStamina ->
+
+              let partDamage = e.ResultDamage * 0.5f
+
+              if partDamage >= stamina then
+                e.ResultDamage <- e.ResultDamage - (partDamage - stamina)
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -stamina)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+              if partDamage >= magicka then
+                e.ResultDamage <- e.ResultDamage - (partDamage - magicka)
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -magicka)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+            | _, Manager.DrainValue.HealthMagickaStamina ->
+
+              let partDamage = e.ResultDamage / 3.f
+
+              if partDamage >= health then
+                e.ResultDamage <- e.ResultDamage - (partDamage - health)
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -health)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Health, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+              if partDamage >= stamina then
+                e.ResultDamage <- e.ResultDamage - (partDamage - stamina)
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -stamina)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Stamina, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+              if partDamage >= magicka then
+                e.ResultDamage <- e.ResultDamage - (partDamage - magicka)
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -magicka)
+              else
+                e.Attacked.DamageActorValue(ActorValueIndices.Magicka, -partDamage)
+                e.ResultDamage <- e.ResultDamage - partDamage
+
+        )
+
+
+        ExtEvent.OnAttackData.Add(fun e ->
+
+          let weight (actor: Actor) =
+            if actor.EquippedShield <> null && actor.EquippedShield.IsValid then
+              actor.EquippedShield.WeightValue
+            else
+              match actor.GetEquippedWeapon(WeaponSlot.Right) with
+              | Some weap -> weap.WeightValue * 1.5f
+              | None -> 8.f * 1.5f
+
+          let formForCalc (actor: Actor): TESForm =
+           if actor.EquippedShield <> null && actor.EquippedShield.IsValid then
+              actor.EquippedShield
+            else
+              match actor.GetEquippedWeapon(WeaponSlot.Right) with
+              | Some weap -> weap
+              | None -> Settings.UnarmedWeapon
+
+          Log "AfterAttack"
+
+          if e.Actor <> null && e.Actor.IsValid && e.AttackData <> null && e.AttackData.IsValid && Settings.Experimental then
+
+            Log "AfterAttack valid"
+
+            let bash = e.AttackData.AttackData.Flags.HasFlag(BGSAttackData.AttackFlags.BashAttack)
+            let power = e.AttackData.AttackData.Flags.HasFlag(BGSAttackData.AttackFlags.PowerAttack)
+
+            Log <| sprintf "Bash: %b Power: %b" bash power
+
+            if bash then
+
+              let form = formForCalc e.Actor
+
+              let weight = weight e.Actor
+
+              let blockingSkill =
+                let skill = e.Actor.GetActorValue(ActorValueIndices.Block)
+                if skill > 100.f then 100.f elif skill < 0.f then 0.f else skill
+
+              let bashCostMult = if power then 1.5f else 1.f
+
+              let cost = weight * bashCostMult * (1.f - (blockingSkill / 200.f))
+
+              Log <| sprintf "Weight: %f BlockingSkill: %f bashCostMult: %f Cost: %f" weight blockingSkill bashCostMult cost
+
+              match Manager.DrainValue.EvalActorValueForm e.Actor form with
+              | _, Manager.DrainValue.Stamina ->
+                e.Actor.DamageActorValue(ActorValueIndices.Stamina, -cost)
+              | _, Manager.DrainValue.Health ->
+                e.Actor.DamageActorValue(ActorValueIndices.Health, -cost)
+              | _, Manager.DrainValue.Magicka ->
+                e.Actor.DamageActorValue(ActorValueIndices.Magicka, -cost)
+              | _, Manager.DrainValue.HealthStamina ->
+                e.Actor.DamageActorValue(ActorValueIndices.Stamina, -(cost * 0.5f))
+                e.Actor.DamageActorValue(ActorValueIndices.Health, -(cost * 0.5f))
+              | _, Manager.DrainValue.HealthMagicka ->
+                e.Actor.DamageActorValue(ActorValueIndices.Magicka, -(cost * 0.5f))
+                e.Actor.DamageActorValue(ActorValueIndices.Health, -(cost * 0.5f))
+              | _, Manager.DrainValue.MagickaStamina ->
+                e.Actor.DamageActorValue(ActorValueIndices.Magicka, -(cost * 0.5f))
+                e.Actor.DamageActorValue(ActorValueIndices.Stamina, -(cost * 0.5f))
+              | _, Manager.DrainValue.HealthMagickaStamina ->
+                e.Actor.DamageActorValue(ActorValueIndices.Magicka, -(cost * 0.35f))
+                e.Actor.DamageActorValue(ActorValueIndices.Stamina, -(cost * 0.35f))
+                e.Actor.DamageActorValue(ActorValueIndices.Health, -(cost * 0.35f))
+
+
+        )
 
         Events.OnMainMenu.Register((fun _ ->
 
