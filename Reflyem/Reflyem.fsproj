@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <Compile Include="Settings.fs" />
-    <Compile Include="DualPower.fs" />
+    <Compile Include="MagickaWeapon.fs" />
     <Compile Include="FenixSpeedCasting.fs" />
     <Compile Include="Bloodshield.fs" />
     <Compile Include="Manashield.fs" />

@@ -1,27 +1,93 @@
 
 
+namespace FSharp
 
-
-namespace BloodMagick
+namespace Blood
     
+    [<Sealed>]
+    type Settings =
+        
+        new: unit -> Settings
+        
+        member internal Load: unit -> bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BloodAbilityEnable", "Наличие абилки, а не кейворда на заклинании",
+           "Использует айди указанное выше что проверить на заклинателе наличие абилки по этому айди, вместо проверки кейворда на спеле",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member BloodAbilityEnable: bool
+        
+        member BloodSpellsAb: NetScriptFramework.SkyrimSE.SpellItem option
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BloodSpellsKeyword",
+           "Кейворд на спелах которые должны тратить здоровье",
+           "Заклинания с этим кейвордом расходуют здоровье, а не магию",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member private BloodSpellsKeyword: uint32
+        
+        member BloodSpellsKwd: NetScriptFramework.SkyrimSE.BGSKeyword option
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BloodSpellsPercentCostEnable",
+           "Спелы МК так же дополнительно расходуют хп в процентах",
+           "Использует магнитуду эффекта с кейвордом (который указан ниже), для определения сколько дополнительно хп должен потратить спелл в процентах",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member BloodSpellsPercentCostEnable: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BloodSpellsPercentCostKeyword",
+           "Кейворд на спелах который указывает процентный расход",
+           "Заклинания с этим кейвордом расходуют здоровье дополнительно расходуют хп в процентах",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member private BloodSpellsPercentCostKeyword: uint32
+        
+        member
+          BloodSpellsPercentKwd: NetScriptFramework.SkyrimSE.BGSKeyword option
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ModName", "Имя мода",
+           "ФормИД указанные в настрокйах ищутся в этом моде",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member private ModName: string
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("OnlyPlayer", "Только для игрока",
+           "Только у игрока особое взаимодействие с этими заклинаниями, нпс используют их как обычно",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member OnlyPlayer: bool
+    
+    [<AutoOpen>]
+    module Singeltones =
+        
+        val Log: (string -> unit)
+        
+        val config: Settings
+    
+    module Foo =
+        
+        module private Boo =
+            
+            val mult: x: int -> y: int -> int
+        
+        val private add: x: int -> y: int -> int
+        
+        val multAndAdd: x: int -> y: int -> int
+
+namespace Blood
+    
+    [<AutoOpen>]
     module private InternalBloodSpells =
         
         val indexAvDrainHealth: int
         
         val magFailSoundId: uint32
         
-        val bloodMagickAbilityId: uint32
-        
         val skyrim: string
         
-        val bloodMagickMod: string
-        
         val castHealthTreshold: float32
-        
-        val bloodMagickAbility: unit -> NetScriptFramework.SkyrimSE.SpellItem
-        
-        val Log: (string -> unit)
     
+    [<RequireQualifiedAccess>]
     module BloodMagickPlugin =
         
         module Domen =
@@ -98,11 +164,23 @@ namespace BloodMagick
             val magicItemNotNullAndIsSpell:
               magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
             
-            val isActorMagicCasterValidAndUnderBloodMagick:
+            val isAllowBloodCast:
+              caster: NetScriptFramework.SkyrimSE.Actor ->
+                magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
+            
+            val isAllowBloodCastMagicCaster:
+              caster: NetScriptFramework.SkyrimSE.MagicCaster ->
+                magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
+            
+            val isActorMagicCasterValidAndIsSpellBloodSpell:
               caster: NetScriptFramework.SkyrimSE.ActorMagicCaster ->
                 magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
             
-            val isActorValidAndUnderBloodMagick:
+            val isMagicCasterValidAndIsSpellBloodSpell:
+              magicCaster: NetScriptFramework.SkyrimSE.MagicCaster ->
+                magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
+            
+            val isActorValidAndIsSpellBloodSpell:
               actor: NetScriptFramework.SkyrimSE.Actor ->
                 magicItem: NetScriptFramework.SkyrimSE.MagicItem -> bool
             

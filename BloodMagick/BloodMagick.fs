@@ -1,4 +1,4 @@
-﻿namespace BloodMagick
+﻿namespace Blood
 
 open NetScriptFramework
 open NetScriptFramework.SkyrimSE
@@ -15,19 +15,9 @@ module private InternalBloodSpells =
 
   let magFailSoundId = uint32 0x3D0D3
 
-  let bloodMagickAbilityId = uint32 0x23F6CCu
-
   let skyrim = @"Skyrim.esm"
 
-  let bloodMagickMod = "Requiem - Breaking Bad.esp"
-
   let castHealthTreshold = 15.f
-
-  let bloodMagickAbility() = Call.TESFormLookupFormFromFile(bloodMagickAbilityId, bloodMagickMod) :?> SpellItem
-
-  let Log = Log.Init "BloodMagick"
-
-open InternalBloodSpells
 
 [<RequireQualifiedAccess>]
 module BloodMagickPlugin =
@@ -120,9 +110,17 @@ module BloodMagickPlugin =
       let sound = Call.TESFormLookupFormFromFile(magFailSoundId, skyrim)
       let player = Call.PlayerInstance()
 
-      flashHudMeter indexAvDrainHealth
-      Call.MessageHUD("Недостаточно здоровья для произношения заклинания.", null, true)
-      playSound sound player
+      if sound.IsNotNullAndValid || player.IsNotNullAndValid then
+        try
+          flashHudMeter indexAvDrainHealth
+          Call.MessageHUD("Недостаточно здоровья для произношения заклинания.", null, true)
+          playSound sound player
+        with ex ->
+          Log <| sprintf "Exception occured when invoke failCast(), message %s" ex.Message
+
+      else
+
+        Log "Error in failcast sound or player null or invalid"
 
     let canSpendOrFailIterruptIfNot (spender: ActorMagicCaster) cost =
       if spender.Owner.GetActorValue(ActorValueIndices.Health) <= cost then
@@ -169,14 +167,42 @@ module BloodMagickPlugin =
         | :? EnchantmentItem as _ -> false
         | :? SpellItem as s -> s.SpellData.SpellType = SpellTypes.Spell
         | _ -> false
+        
+    let isAllowBloodCast (caster: Actor) (magicItem: MagicItem) =
+      if caster <> null && caster.IsValid && magicItem <> null && magicItem.IsValid then
+        if config.BloodAbilityEnable then
+          caster.HasSpell(config.BloodSpellsAb.Value)
+        else
+          magicItem.HasKeyword(config.BloodSpellsKwd.Value)
+      else
+        false
+        
+    let isAllowBloodCastMagicCaster (caster: MagicCaster) (magicItem: MagicItem) =
+      if caster <> null && caster.IsValid && magicItem <> null && magicItem.IsValid then
+        if config.BloodAbilityEnable then
+          match caster with
+          | :? ActorMagicCaster as amc ->
+            if amc <> null && amc.IsValid && amc.Owner <> null && amc.IsValid then
+                amc.Owner.HasSpell(config.BloodSpellsAb.Value)
+            else
+              false
+          | _ -> false
+        else
+          magicItem.HasKeyword(config.BloodSpellsKwd.Value)
+      else
+        false
 
-    let isActorMagicCasterValidAndUnderBloodMagick (caster: ActorMagicCaster) (magicItem: MagicItem) =
-      caster <> null && caster.IsValid && caster.Owner <> null && caster.Owner.IsValid 
-      && magicItemNotNullAndIsSpell magicItem && caster.Owner.HasSpell(bloodMagickAbility())
-    
-    let isActorValidAndUnderBloodMagick (actor: Actor) (magicItem: MagicItem) =
+    let isActorMagicCasterValidAndIsSpellBloodSpell (caster: ActorMagicCaster) (magicItem: MagicItem) =
+      caster <> null && caster.IsValid && caster.Owner <> null && caster.Owner.IsValid
+      && magicItemNotNullAndIsSpell magicItem && isAllowBloodCast caster.Owner magicItem
+
+    let isMagicCasterValidAndIsSpellBloodSpell (magicCaster: MagicCaster) (magicItem: MagicItem) =
+      magicCaster <> null && magicCaster.IsValid && magicItemNotNullAndIsSpell magicItem 
+      && isAllowBloodCastMagicCaster magicCaster magicItem
+
+    let isActorValidAndIsSpellBloodSpell (actor: Actor) (magicItem: MagicItem) =
       actor <> null && actor.IsValid && magicItemNotNullAndIsSpell magicItem 
-      && actor.HasSpell(bloodMagickAbility())
+      && isAllowBloodCast actor magicItem
 
     let asyncHandleRestore amountRestore (caster: Actor) = async {
       let mutable alreadyRestore = 0.f
@@ -192,13 +218,15 @@ module BloodMagickPlugin =
   let mutable menuState = Domen.MenuState.WaitOpen
 
   let init() =
-    let bm = bloodMagickAbility()
-    if bm <> null && bm.IsValid then
-      Log <| sprintf "BloodMagick Ok"
-      true
-    else
-      Log <| sprintf "BloodMagick null ability"
+    match config.Load() with
+    | true -> Log "Config success loaded"
+    | false -> Log "Config not load, generate"
+    if config.BloodSpellsKwd.IsNone && config.BloodSpellsAb.IsNone then
+      Log <| sprintf "Keyword or spell for blood spells is None"
       false
+    else
+      Log <| sprintf "Bloodspells Ok"
+      true
 
   let onInterruptCast (eArg: InterruptCastEventArgs )=
     //Log <| sprintf "In interrapt cast"
@@ -230,16 +258,21 @@ module BloodMagickPlugin =
       | _ -> () //Log <| sprintf "No casting in interrapt"
 
   let onFrameAlways() =
-    for key in castersDict.Keys do
-      let castHandler, _ = castersDict[key]
-
-      if castHandler.Caster <> null && castHandler.Caster.IsValid 
-         && castHandler.Caster.HasSpell(bloodMagickAbility()) && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold then
-        for caster in castHandler.Caster.MagicCasters do
-          let validCaster = caster <> null && caster.IsValid
-          if validCaster && caster.State = MagicCastingStates.Concentrating then
-            caster.InterruptCast()
-            Functions.failCast()
+    try
+      for key in castersDict.Keys do
+        let castHandler, _ = castersDict[key]
+  
+        if castHandler.Caster <> null && castHandler.Caster.IsValid 
+          && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold && castHandler.Caster.MagicCasters <> null then
+          for caster in castHandler.Caster.MagicCasters do
+            let validCaster =
+              caster <> null && caster.IsValid && caster.CastItem <> null
+              && caster.CastItem.IsValid && caster.Owner <> null && caster.Owner.IsValid
+            if validCaster && caster.State = MagicCastingStates.Concentrating && Functions.isAllowBloodCast caster.Owner caster.CastItem then
+              caster.InterruptCast()
+              Functions.failCast()
+    with ex ->
+      Log "Fail on frame always exception"
 
   let onFrame10ms() =
     let isMenuOpen = Call.MenuManagerInstance().IsMenuOpen("MagicMenu")
@@ -276,7 +309,16 @@ module BloodMagickPlugin =
 
   let onCalculateMagickCost (eArg: CalculateMagicCostEventArgs) =
 
-    let allow = Functions.isActorValidAndUnderBloodMagick eArg.Caster eArg.Item && Functions.isConcentrationSpell eArg.Item |> not
+    let allow = 
+      let check =
+        Functions.isActorValidAndIsSpellBloodSpell eArg.Caster eArg.Item 
+        // && Functions.isConcentrationSpell eArg.Item |> not
+
+      if check then
+        let playerOnly = if config.OnlyPlayer then eArg.Caster.IsPlayer else true
+        check && playerOnly
+      else
+        check
 
     if not allow then
       ()
@@ -291,19 +333,50 @@ module BloodMagickPlugin =
         let newCastHandler = Domen.CastsHandHandler.Create eArg.Caster
         castersDict.TryAdd(key, (newCastHandler, newCostDict)) |> ignore
         (newCastHandler, newCostDict)
+        
+    let calculatePercentCost (magicItem: MagicItem) currentCost =
+      
+      let spellItem = magicItem :?> SpellItem
+      
+      if (currentCost <= 0.f && eArg.BaseValue > 0.f) || config.BloodSpellsPercentCostEnable |> not then
+        0.f
+      else
+      
+        let mutable percentCost = 0.f
+        
+        for effect in spellItem.Effects do
+          if config.BloodSpellsPercentKwd.IsSome && effect.Effect.HasKeyword(config.BloodSpellsPercentKwd.Value) then
+            percentCost <- percentCost + effect.Magnitude
+            
+        let costMultiply = currentCost / eArg.BaseValue
+            
+        costMultiply * percentCost
+        
+    let isConcentrationSpell = Functions.isConcentrationSpell eArg.Item
+    let percentCost = calculatePercentCost eArg.Item eArg.ResultValue
+    let casterHealthCost = (eArg.Caster.GetActorValueMax(ActorValueIndices.Health) / 100.f) * percentCost
+    
+    let spellCost = eArg.ResultValue + casterHealthCost
 
-    costDict.AddOrUpdate(eArg.Item.Address, eArg.ResultValue, fun _ _ -> eArg.ResultValue) |> ignore
+    if not isConcentrationSpell then
+      costDict.AddOrUpdate(eArg.Item.Address, spellCost, fun _ _ -> spellCost) |> ignore
 
     if Call.MenuManagerInstance().IsMenuOpen("MagicMenu") && eArg.Caster.IsPlayer then
-      ()
-    else 
+      eArg.ResultValue <- spellCost
+    elif isConcentrationSpell then
+      eArg.ResultValue <- spellCost
+    else
       eArg.ResultValue <- 0.f
 
   let onSpendMagicCost (eArg: SpendMagicCostEventArgs) =
 
-    let validAndBaseAllow = Functions.isActorMagicCasterValidAndUnderBloodMagick eArg.Spender eArg.Item
+    let validAndBaseAllow = Functions.isActorMagicCasterValidAndIsSpellBloodSpell eArg.Spender eArg.Item
 
     if not validAndBaseAllow then
+      ()
+    else
+
+    if config.OnlyPlayer && not eArg.Spender.Owner.IsPlayer then
       ()
     else
 
@@ -353,25 +426,29 @@ module BloodMagickPlugin =
         castHandler.LeftCast.StartWorking numIter costForIter
 
   let onMagicCasterFire (eArg: MagicCasterFireEventArgs) =
-    
-    match eArg.Caster with
-    | :? ActorMagicCaster as actorMagicCaster 
-      when actorMagicCaster <> null && actorMagicCaster.IsValid && actorMagicCaster.Owner <> null && actorMagicCaster.Owner.IsValid
-        && Functions.isActorMagicCasterValidAndUnderBloodMagick actorMagicCaster eArg.Item
-        && Functions.isConcentrationSpell eArg.Item |> not 
-        && castersDict.ContainsKey(actorMagicCaster.Owner.Address) ->
+    if Functions.isMagicCasterValidAndIsSpellBloodSpell eArg.Caster eArg.Item 
+       && Functions.isConcentrationSpell eArg.Item |> not then
 
-        let castHandler, _ = castersDict[actorMagicCaster.Owner.Address]
+      match eArg.Caster with
+      | :? ActorMagicCaster as c when c <> null 
+          && c.IsValid && c.Owner <> null && c.Owner.IsValid 
+          && castersDict.ContainsKey(c.Owner.Address) ->
+
+        if config.OnlyPlayer && c.Owner.IsPlayer |> not then
+          ()
+        else
+
+        let castHandler, _ = castersDict[c.Owner.Address]
 
         castHandler.DualCast.ResetToWork()
 
-        if actorMagicCaster.ActorCasterType = EquippedSpellSlots.RightHand then
+        if c.ActorCasterType = EquippedSpellSlots.RightHand then
           castHandler.RightCast.ResetToWork()
 
-        if actorMagicCaster.ActorCasterType = EquippedSpellSlots.LeftHand then
+        if c.ActorCasterType = EquippedSpellSlots.LeftHand then
           castHandler.LeftCast.ResetToWork()
 
-    | _ -> ()
+      | _ -> ()
 
 
 type BloodMagickPlugin() =

@@ -39,6 +39,7 @@ type Reflyem() =
   let mutable fenixSpeedCastingPluginInit = false
   let mutable dualPowerPluginInit = false
   let mutable widgetPluginInit = false
+  let mutable magickaWeaponPluginInit = false
 
   let mutable lastTime10ms = 0L
   let mutable lastTime100ms = 0L
@@ -54,16 +55,16 @@ type Reflyem() =
 
 
   override self.Initialize _ =
+
+    RefConfig.Load()
+    |> function
+    | true ->  Log <| sprintf "Settings load"
+    | false -> Log <| sprintf "Can't load settings, use default"
       
     self.init()
     true
       
   member private _.init() =
-      
-    RefConfig.Load()
-    |> function
-    | true ->  Log <| sprintf "Settings load"
-    | false -> Log <| sprintf "Can't load settings, use default"
 
     Events.OnMainMenu.Register(fun _ ->
       if not modInit then
@@ -73,8 +74,8 @@ type Reflyem() =
         manashieldPluginInit        <- ManashieldPlugin.init()
         fenixSpeedCastingPluginInit <- FenixSpeedCastingPlugin.init()
         bloodshieldPluginInit       <- BloodshieldPlugin.init()
-        dualPowerPluginInit         <- DualPowerPlugin.init()
-        vampirisimPluginInit        <- true
+        vampirisimPluginInit        <- VampirismPlugin.init()
+        magickaWeaponPluginInit     <- MagickaWeaponPlugin.init()
         timer.Start()
         modInit <- true
       ) |> ignore
@@ -150,18 +151,13 @@ type Reflyem() =
 
       ) |> ignore
 
-    ExtEvent.OnAdjustEffect.Add(fun eArg ->
-      
-      if modInit then
-        
-        if dualPowerPluginInit then
-          DualPowerPlugin.onAdjustEffect eArg
-
-      )
-
     ExtEvent.OnHitWeapon.Add(fun eArg ->
 
       if modInit then
+
+        if magickaWeaponPluginInit then
+
+          eArg.ResultDamage <- eArg.ResultDamage - MagickaWeaponPlugin.onWeaponHit eArg
         
         match ShieldConfig() with
         | Domain.ShieldConfig.BloodAfterMana ->

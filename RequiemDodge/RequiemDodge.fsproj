@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework> 
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Settings.fs" />
+    <Compile Include="RequiemDodge.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wrapper\Wrapper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="NetScriptFramework">
+      <HintPath>..\NetScriptFramework\NetScriptFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="NetScriptFramework.SkyrimSE">
+      <HintPath>..\NetScriptFramework\NetScriptFramework.SkyrimSE.dll</HintPath>
+    </Reference>
+    <Reference Include="XInput.Wrapper">
+      <HintPath>XInput.Wrapper.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

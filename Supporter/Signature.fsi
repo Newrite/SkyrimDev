@@ -1,6 +1,6 @@
 
 
-
+namespace FSharp
 
 namespace Supporter
     
@@ -12,170 +12,71 @@ namespace Supporter
         member internal Load: unit -> bool
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("DiffMultHPByPCLGlobId",
+          ("ArrowReleaseGlobalId", "Global for ArrowRelease form id",
+           "Global modify when ArrowRelease with bow equip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ArrowReleaseGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ArrowReleaseSpellId", "Spell for ArrowRelease form id",
+           "Spell cast when ArrowRelease with bow equip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ArrowReleaseSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BoltReleaseGlobalId", "Global for BoltRelease form id",
+           "Global modify when ArrowRelease with crossbow equip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BoltReleaseGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BoltReleaseSpellId", "Spell for BoltRelease form id",
+           "Spell cast when ArrowRelease with crossbow equip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BoltReleaseSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BowDrawGlobalId", "Global for BowDraw form id",
+           "Global modify when BowDraw anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BowDrawGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BowDrawSpellid", "Spell for BowDraw form id",
+           "Spell cast when BowDraw anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BowDrawSpellid: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BowResetGlobalId", "Global for BowReset form id",
+           "Global modify when BowReset anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BowResetGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BowResetSpellId", "Spell for BowReset form id",
+           "Spell cast when BowReset anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member BowResetSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("DiffMultHPByPCLGlobalId",
            "Global with gamesettings mult damage by player",
            "Global has value of GameSetting - fDiffMultHPByPCL",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private DiffMultHPByPCLGlobId: uint32
+        member DiffMultHPByPCLGlobalId: uint32
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("DiffMultHPToPCLGlobId",
+          ("DiffMultHPToPCLGlobalId",
            "Global with gamesettings mult damage to player",
            "Global has value of GameSetting - fDiffMultHPToPCL",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private DiffMultHPToPCLGlobId: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventArrowRelease", "Spell for ArrowRelease form id",
-           "Spell cast when ArrowRelease with bow equip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventArrowRelease: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventArrowReleaseGlobal", "Global for ArrowRelease form id",
-           "Global modify when ArrowRelease with bow equip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventArrowReleaseGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBoltRelease", "Spell for BoltRelease form id",
-           "Spell cast when ArrowRelease with crossbow equip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBoltRelease: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBoltReleaseGlobal", "Global for BoltRelease form id",
-           "Global modify when ArrowRelease with crossbow equip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBoltReleaseGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBowDraw", "Spell for BowDraw form id",
-           "Spell cast when BowDraw anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBowDraw: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBowDrawGlobal", "Global for BowDraw form id",
-           "Global modify when BowDraw anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBowDrawGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBowReset", "Spell for BowReset form id",
-           "Spell cast when BowReset anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBowReset: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventBowResetGlobal", "Global for BowReset form id",
-           "Global modify when BowReset anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventBowResetGlobal: uint32
+        member DiffMultHPToPCLGlobalId: uint32
         
         member
           EventGlobalsList: NetScriptFramework.SkyrimSE.TESGlobal option list
         
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventJump", "Spell for JumpUP form id",
-           "Spell cast when JumpUp anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventJump: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventJumpGlobal", "Global for JumpUP form id",
-           "Global modify when JumpUp anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventJumpGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventReloadStart", "Spell for ReloadStart form id",
-           "Spell cast when ReloadStart anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventReloadStart: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventReloadStartGlobal", "Global for ReloadStart form id",
-           "Global modify when ReloadStart anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventReloadStartGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventReloadStop", "Spell for ReloadStop form id",
-           "Spell cast when ReloadStip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventReloadStop: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventReloadStopGlobal", "Global for ReloadStop form id",
-           "Global modify when ReloadStip anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventReloadStopGlobal: uint32
-        
         member EventSpellList: NetScriptFramework.SkyrimSE.SpellItem option list
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeapEquipOut", "Spell for WeapEquipOut form id",
-           "Spell cast when WeapEquipOut anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeapEquipOut: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeapEquipOutGlobal", "Global for WeapEquipOut form id",
-           "Global modify when WeapEquipOut anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeapEquipOutGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingLeft", "Spell for WeaponSwingLeft form id",
-           "Spell cast when WeaponSwingLeft anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingLeft: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingLeftGlobal", "Global for WeaponSwingLeft form id",
-           "Global modify when WeaponSwingLeft anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingLeftGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingLeftPower", "Spell for WeaponSwingLeftPower form id",
-           "Spell cast when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingLeftPower: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingLeftPowerGlobal",
-           "Global for WeaponSwingLeftPower form id",
-           "Global modify when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingLeftPowerGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingRight", "Spell for WeaponSwingRight form id",
-           "Spell cast when WeaponSwing anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingRight: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingRightGlobal", "Global for WeaponSwingRight form id",
-           "Global modify when WeaponSwing anim is rising, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingRightGlobal: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingRightPower",
-           "Spell for WeaponSwingRightPower form id",
-           "Spell cast when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingRightPower: uint32
-        
-        [<NetScriptFramework.Tools.ConfigValue
-          ("EventWeaponSwingRightPowerGlobal",
-           "Spell for WeaponSwingRightPower form id",
-           "Global modify when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
-           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private EventWeaponSwingRightPowerGlobal: uint32
         
         member
           GameSettingDamageByPlayer: NetScriptFramework.SkyrimSE.TESGlobal option
@@ -212,9 +113,69 @@ namespace Supporter
           GlobalWeaponSwingRightPower: NetScriptFramework.SkyrimSE.TESGlobal option
         
         [<NetScriptFramework.Tools.ConfigValue
+          ("JumpGlobalId", "Global for JumpUP form id",
+           "Global modify when JumpUp anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member JumpGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("JumpSpellId", "Spell for JumpUP form id",
+           "Spell cast when JumpUp anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member JumpSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
           ("ModName", "Mod name where FormIDs", "Form id gets from this file",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
-        member private ModName: string
+        member ModName: string
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("OnAdjustEffectHookEnable", "On Adjust Effect Hook",
+           "Disable or enable hook",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member OnAdjustEffectHookEnable: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("OnAnimationHackHookEnable", "On Animation Hack Hook",
+           "Disable or enable hook",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member OnAnimationHackHookEnable: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("OnAttackDataHookEnable", "On Attack Data Hook",
+           "Disable or enable hook",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member OnAttackDataHookEnable: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("OnWeaponHitHookEnable", "On Weapon Hit Hook",
+           "Disable or enable hook",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member OnWeaponHitHookEnable: bool
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ReloadStartGlobalId", "Global for ReloadStart form id",
+           "Global modify when ReloadStart anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ReloadStartGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ReloadStartSpellId", "Spell for ReloadStart form id",
+           "Spell cast when ReloadStart anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ReloadStartSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ReloadStopGlobalId", "Global for ReloadStop form id",
+           "Global modify when ReloadStip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ReloadStopGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("ReloadStopSpellId", "Spell for ReloadStop form id",
+           "Spell cast when ReloadStip anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member ReloadStopSpellId: uint32
         
         member SpellArrowRelease: NetScriptFramework.SkyrimSE.SpellItem option
         
@@ -243,9 +204,74 @@ namespace Supporter
         
         member
           SpellWeaponSwingRightPower: NetScriptFramework.SkyrimSE.SpellItem option
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeapEquipOutGlobalId", "Global for WeapEquipOut form id",
+           "Global modify when WeapEquipOut anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeapEquipOutGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeapEquipOutSpellId", "Spell for WeapEquipOut form id",
+           "Spell cast when WeapEquipOut anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeapEquipOutSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingLeftGlobalId", "Global for WeaponSwingLeft form id",
+           "Global modify when WeaponSwingLeft anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingLeftGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingLeftPowerGlobalId",
+           "Global for WeaponSwingLeftPower form id",
+           "Global modify when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingLeftPowerGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingLeftPowerSpellId",
+           "Spell for WeaponSwingLeftPower form id",
+           "Spell cast when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingLeftPowerSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingLeftSpellId", "Spell for WeaponSwingLeft form id",
+           "Spell cast when WeaponSwingLeft anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingLeftSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingRightGlobalId", "Global for WeaponSwingRight form id",
+           "Global modify when WeaponSwing anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingRightGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingRightPowerGlobalId",
+           "Spell for WeaponSwingRightPower form id",
+           "Global modify when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingRightPowerGlobalId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingRightPowerSpellId",
+           "Spell for WeaponSwingRightPower form id",
+           "Spell cast when WeaponSwingLeft anim is rising and it is power attack, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingRightPowerSpellId: uint32
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("WeaponSwingRightSpellId", "Spell for WeaponSwingRight form id",
+           "Spell cast when WeaponSwing anim is rising, need for hook this event in plugin",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
+        member WeaponSwingRightSpellId: uint32
 
 namespace Supporter
     
+    [<AutoOpen>]
     module Utils =
         
         val inline (^) : f: ('a -> 'b) -> x: 'a -> 'b
@@ -254,6 +280,7 @@ namespace Supporter
             
             val Init: modName: string -> msg: string -> unit
         
+        [<AutoOpen>]
         module internal InternalSupporter =
             
             val Settings: Settings
@@ -273,6 +300,7 @@ namespace Supporter
           ptr: nativeint -> name: string -> unit
             when 'a :> NetScriptFramework.IMemoryObject
     
+    [<RequireQualifiedAccess>]
     module internal Addresses =
         
         [<Literal>]
@@ -316,7 +344,11 @@ namespace Supporter
         
         [<Literal>]
         val OnMagicProjectileFlameHit: uint64 = 42728UL
+        
+        [<Literal>]
+        val OnRestoreActorValue: uint64 = 37510UL
     
+    [<RequireQualifiedAccess>]
     module internal Offsets =
         
         [<Literal>]
@@ -339,8 +371,14 @@ namespace Supporter
         
         [<Literal>]
         val OnMagicProjectileFlameHit: int = 1098
+        
+        [<Literal>]
+        val OnRestoreActorValue: int = 374
     
     module Extensions =
+        type NetScriptFramework.IMemoryObject with
+            
+            member IsNotNullAndValid: bool
         type NetScriptFramework.SkyrimSE.ActiveEffect with
             
             member IsPowerDurationScaling: bool
@@ -551,6 +589,7 @@ namespace Supporter
         
         val OnAttackData: IEvent<AttackDataDelegate,OnAttackDataArgs>
     
+    [<RequireQualifiedAccess>]
     module Memory =
         
         val tryReadPointer: ptr: nativeint -> bool * nativeint

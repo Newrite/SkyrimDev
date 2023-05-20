@@ -19,6 +19,7 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <Compile Include="Settings.fs" />
         <Compile Include="BloodMagick.fs" />
     </ItemGroup>
     

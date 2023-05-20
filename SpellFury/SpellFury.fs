@@ -106,8 +106,8 @@ type SpellFuryPlugin() =
     member private self.Perk03() =
       Call.TESFormLookupFormFromFile(perkId03, furyPlugin) :?> BGSPerk
 
-    member private self.CastSpeed() =
-      Call.TESFormLookupFormFromFile(globalCastSpeedId, furyPlugin) :?> TESGlobal
+    // member private self.CastSpeed() =
+    //   Call.TESFormLookupFormFromFile(globalCastSpeedId, furyPlugin) :?> TESGlobal
 
     member private self.MagickaRestorePerHit() =
       Call.TESFormLookupFormFromFile(globalMagickaRestorePerHitId, furyPlugin) :?> TESGlobal
@@ -130,8 +130,8 @@ type SpellFuryPlugin() =
     member private self.SpellFury() =
       Call.TESFormLookupFormFromFile(abilitySpellFury, furyPlugin) :?> SpellItem
 
-    member private self.ManaShield() =
-      Call.TESFormLookupFormFromFile(abilityManaShield, furyPlugin) :?> SpellItem
+    // member private self.ManaShield() =
+    //   Call.TESFormLookupFormFromFile(abilityManaShield, furyPlugin) :?> SpellItem
 
     member private self.UpdateAbilitys(player: Actor) =
       
@@ -185,14 +185,14 @@ type SpellFuryPlugin() =
            && self.Perk02() <> null
            && self.Perk03() <> null
            && self.ArmorBuff() <> null
-           && self.CastSpeed() <> null
+           // && self.CastSpeed() <> null
            && self.CostReduction() <> null
            && self.MagickaDrain() <> null
            && self.MagickaRestorePerHit() <> null
            && self.SpellCostReduction() <> null
            && self.TresholdDrainMagicka() <> null
            && self.SpellFury() <> null
-           && self.ManaShield() <> null then
+           (*&& self.ManaShield() <> null*) then
           if not modInit then
             timer.Start()
             Log "Timer start, all TESForms is ok, mod init"
@@ -202,7 +202,7 @@ type SpellFuryPlugin() =
       
         ) |> ignore
 
-      ExtEvent.OnHitWeapon.Add(fun eArg ->
+      (*ExtEvent.OnHitWeapon.Add(fun eArg ->
         if modInit then
           //Log "Weapon hit"
           //if eArg.Attacked <> null && eArg.Attacked.IsValid then
@@ -234,7 +234,7 @@ type SpellFuryPlugin() =
               //Log <| sprintf "Magicka low: %f" (damageToMagicka - magicka)
               eArg.Attacked.DamageActorValue(ActorValueIndices.Magicka, -magicka)
               eArg.ResultDamage <- damageTotalNew + (damageToMagicka - magicka)
-      )
+      )*)
 
       Events.OnFrame.Register(fun _ ->
 
@@ -248,14 +248,14 @@ type SpellFuryPlugin() =
             self.MagickaRestorePerHit().FloatValue <- (float32 (SpellFury.getWeaponDamage player) * 0.5f) + (float32 (player.Level) * 0.5f)
             self.SpellCostReduction().FloatValue <- self.MagickaRestorePerHit().FloatValue * 0.5f
 
-            if player.HasPerk(self.Perk03()) then
-              self.CastSpeed().FloatValue <- 0.55f
-            elif player.HasPerk(self.Perk02()) then
-              self.CastSpeed().FloatValue <- 0.7f
-            elif player.HasPerk(self.Perk01()) then
-              self.CastSpeed().FloatValue <- 0.85f
-            else
-              self.CastSpeed().FloatValue <- 1.f
+            // if player.HasPerk(self.Perk03()) then
+            //   self.CastSpeed().FloatValue <- 0.55f
+            // elif player.HasPerk(self.Perk02()) then
+            //   self.CastSpeed().FloatValue <- 0.7f
+            // elif player.HasPerk(self.Perk01()) then
+            //   self.CastSpeed().FloatValue <- 0.85f
+            // else
+            //   self.CastSpeed().FloatValue <- 1.f
 
             self.UpdateAbilitys player
             self.CheckAbility player
@@ -265,7 +265,7 @@ type SpellFuryPlugin() =
             self.TresholdDrainMagicka().FloatValue <- 0.f
             self.MagickaRestorePerHit().FloatValue <- 0.f
             self.SpellCostReduction().FloatValue <- 0.f
-            self.CastSpeed().FloatValue <- 1.f
+            // self.CastSpeed().FloatValue <- 1.f
 
             lastMaxMagicka <- 0.f
             lastSpellCostReduction <- 0.f

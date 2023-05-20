@@ -109,9 +109,17 @@ module BloodSpellsPlugin =
       let sound = Call.TESFormLookupFormFromFile(magFailSoundId, skyrim)
       let player = Call.PlayerInstance()
 
-      flashHudMeter indexAvDrainHealth
-      Call.MessageHUD("Недостаточно здоровья для произношения заклинания.", null, true)
-      playSound sound player
+      if sound.IsNotNullAndValid || player.IsNotNullAndValid then
+        try
+          flashHudMeter indexAvDrainHealth
+          Call.MessageHUD("Недостаточно здоровья для произношения заклинания.", null, true)
+          playSound sound player
+        with ex ->
+          Log <| sprintf "Exception occured when invoke failCast(), message %s" ex.Message
+
+      else
+
+        Log "Error in failcast sound or player null or invalid"
 
     let canSpendOrFailIterruptIfNot (spender: ActorMagicCaster) cost =
       if spender.Owner.GetActorValue(ActorValueIndices.Health) <= cost then
@@ -225,7 +233,8 @@ module BloodSpellsPlugin =
     for key in castersDict.Keys do
       let castHandler, _ = castersDict[key]
 
-      if castHandler.Caster <> null && castHandler.Caster.IsValid && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold then
+      if castHandler.Caster <> null && castHandler.Caster.IsValid 
+        && castHandler.Caster.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold && castHandler.Caster.MagicCasters <> null then
         for caster in castHandler.Caster.MagicCasters do
           let validCaster = caster <> null && caster.IsValid && caster.CastItem <> null && caster.CastItem.IsValid
           if validCaster && caster.State = MagicCastingStates.Concentrating && caster.CastItem.HasKeyword(RefConfig.BloodSpellsKwd.Value) then

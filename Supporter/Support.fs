@@ -104,6 +104,8 @@ module internal Addresses =
 
   let [<Literal>] OnMagicProjectileFlameHit = 42728uL
 
+  let [<Literal>] OnRestoreActorValue = 37510uL
+
 [<RequireQualifiedAccess>]
 module internal Offsets =
   
@@ -121,7 +123,14 @@ module internal Offsets =
 
   let [<Literal>] OnMagicProjectileFlameHit = 0x44A
 
+  let [<Literal>] OnRestoreActorValue = 0x176
+
 module Extensions =
+
+  type IMemoryObject with
+    
+    member self.IsNotNullAndValid =
+      self <> null && self.IsValid
 
   type ActiveEffect with
 
@@ -276,7 +285,10 @@ module Extensions =
 
   let flashHudMeter (av: int) =
     let addr_FlashHudMeter = Main.GameInfo.GetAddressOf(Addresses.FlashHudMeter)
-    Memory.InvokeCdecl(addr_FlashHudMeter, av) |> ignore
+    if addr_FlashHudMeter <> IntPtr.Zero then
+      Memory.InvokeCdecl(addr_FlashHudMeter, av) |> ignore
+    else
+      LogSup "addr_FlashHudMeter zero ptr"
 
   let playSound (sound: TESForm) (actor: Actor) =
     let fnAddr_BGSSoundDescriptor_PlaySound = Main.GameInfo.GetAddressOf(Addresses.PlaySound)
@@ -284,6 +296,8 @@ module Extensions =
        && sound <> null && actor <> null && actor.Node <> null then
       Memory.InvokeCdecl(fnAddr_BGSSoundDescriptor_PlaySound, sound.Address, 0, actor.Position.Address, actor.Node.Address) 
       |> ignore
+    else
+      LogSup "fnAddr_BGSSoundDescriptor_PlaySound zero ptr or null argument"
 
 module ExtEvent =
 
@@ -399,6 +413,9 @@ module Memory =
 module internal Hooks =
   
   let installHookOnWeaponHit() =
+
+    LogSup "Install On Weapon Hit hook..."
+
     let hookParam = new HookParameters()
     hookParam.Address <- Main.GameInfo.GetAddressOf(Addresses.OnWeaponHit, Offsets.OnWeaponHit)
     hookParam.IncludeLength <- 5
@@ -421,8 +438,12 @@ module internal Hooks =
       //  LogSup "Not success args for weapon hit"
     hookParam.After <- fun _ -> ()
     Memory.WriteHook(hookParam)
+
+    LogSup "Success install On Weapon Hit hook!"
   
   let installHookOnAdjustEffect() =
+
+    LogSup "Install On Adjust Effect hook..."
   
     let hookParam = new HookParameters()
     hookParam.Address <- Main.GameInfo.GetAddressOf(Addresses.OnAdjustEffect, Offsets.OnAdjustEffect)
@@ -440,27 +461,35 @@ module internal Hooks =
     hookParam.After <- fun _ -> ()
     Memory.WriteHook(hookParam)
 
+    LogSup "Success install On Adjust Effect hook!"
+
   let installHookOnAttackData() =
+
+    LogSup "Install On Attack Data hook..."
   
     let hookParam = new HookParameters()
     hookParam.Address <- Main.GameInfo.GetAddressOf(Addresses.OnAttackData, Offsets.OnAttackData)
     hookParam.IncludeLength <- 5
     hookParam.ReplaceLength <- 5
     hookParam.Before <- fun ctx ->
-      //writeNativeLog ctx "On-Attack"
-      let firstResultRead, r14 = Memory.tryReadPointer ctx.R14
-      let actorResultRead, _ = Memory.tryReadPointer ctx.DI
-      LogSup <| sprintf "firstResultRead: %b actorResultRead: %b" firstResultRead actorResultRead
-      if firstResultRead && actorResultRead then
-        let attackData = MemoryObject.FromAddress<BGSAttackData>(r14)
-        let actor = MemoryObject.FromAddress<Actor>(ctx.DI)
-        LogSup "Okay read"
-        ExtEvent.attackDataRising.Trigger(ctx, new ExtEvent.OnAttackDataArgs(ctx, actor, attackData))
+      // try
+        // writeNativeLog ctx "On-Attack"
+        let firstResultRead, r14 = Memory.tryReadPointer ctx.R14
+        let actorResultRead, _ = Memory.tryReadPointer ctx.DI
+        // LogSup <| sprintf "firstResultRead: %b actorResultRead: %b" firstResultRead actorResultRead
+        if firstResultRead && actorResultRead then
+          let attackData = MemoryObject.FromAddress<BGSAttackData>(r14)
+          let actor = MemoryObject.FromAddress<Actor>(ctx.DI)
+          // LogSup "Okay read"
+          ExtEvent.attackDataRising.Trigger(ctx, new ExtEvent.OnAttackDataArgs(ctx, actor, attackData))
+      // with ex ->
+        // LogSup <| sprintf "Exception occured in onAttackData message %s and stack \n%s" ex.Message ex.StackTrace
     hookParam.After <- fun _ -> ()
     Memory.WriteHook(hookParam)
 
+    LogSup "Success install On Attack Data hook!"
+
 open ExtEvent
-open Extensions
 
 type SupporterPlugin() =
 
@@ -477,22 +506,23 @@ type SupporterPlugin() =
   override _.Version = 1
 
   override self.Initialize _ =
-      
-      Hooks.installHookOnWeaponHit()
-      Hooks.installHookOnAdjustEffect()
-      Hooks.installHookOnAttackData()
-
-      self.init()
-      true
-
-  member private self.init() =
 
     Settings.Load()
     |> function
-    | true -> ()
+    | true -> LogSup <| sprintf "Settings load"
     | false -> LogSup <| sprintf "Can't load settings"
+      
+    if Settings.OnAdjustEffectHookEnable then Hooks.installHookOnAdjustEffect()
+    if Settings.OnAttackDataHookEnable then Hooks.installHookOnAttackData()
+    if Settings.OnWeaponHitHookEnable then Hooks.installHookOnWeaponHit()
+
+    self.init()
+    true
+
+  member private self.init() =
 
     let inline animRegister (animation: Animations) (actor: #Actor) =
+      // LogSup <| sprintf "Animation %A was register for actor with level %d" animation actor.Level
       animationRising.Trigger(self, new OnAnimationArgs(animation, actor))
 
     Events.OnMagicCasterFire.Register(fun eArg ->
@@ -567,11 +597,13 @@ type SupporterPlugin() =
 
     Events.OnMainMenu.Register(fun _ ->
     
-      if not init then
+      if not init && Settings.OnAnimationHackHookEnable then
         LogSup <| sprintf "Init in main menu - Ok"
+        LogSup "Install On Animation hack..."
         if List.contains None Settings.EventSpellList || List.contains None Settings.EventGlobalsList then
-            LogSup <| sprintf "One or more global or spell event in settings is None"
+          LogSup <| sprintf "On Animation Hack: One or more global or spell event in settings is None"
         else
-            timer.Start()
-            init <- true
+          LogSup "On Animation hack success init"
+          timer.Start()
+          init <- true
       ) |> ignore
