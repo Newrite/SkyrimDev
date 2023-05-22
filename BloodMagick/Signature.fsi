@@ -24,9 +24,15 @@ namespace Blood
            "Кейворд на спелах которые должны тратить здоровье",
            "Заклинания с этим кейвордом расходуют здоровье, а не магию",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private BloodSpellsKeyword: uint32
+        member BloodSpellsKeyword: uint32
         
         member BloodSpellsKwd: NetScriptFramework.SkyrimSE.BGSKeyword option
+        
+        [<NetScriptFramework.Tools.ConfigValue
+          ("BloodSpellsPercentConvert", "Процент конвертации магии в здоровье",
+           "Значение которое используется для определения того какой процент от стоимость должен тратиться в виде хп, если установлено 0 то эта настройка не задействуется.",
+           enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
+        member BloodSpellsPercentConvert: float32
         
         [<NetScriptFramework.Tools.ConfigValue
           ("BloodSpellsPercentCostEnable",
@@ -40,7 +46,7 @@ namespace Blood
            "Кейворд на спелах который указывает процентный расход",
            "Заклинания с этим кейвордом расходуют здоровье дополнительно расходуют хп в процентах",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (8UL))>]
-        member private BloodSpellsPercentCostKeyword: uint32
+        member BloodSpellsPercentCostKeyword: uint32
         
         member
           BloodSpellsPercentKwd: NetScriptFramework.SkyrimSE.BGSKeyword option
@@ -49,7 +55,7 @@ namespace Blood
           ("ModName", "Имя мода",
            "ФормИД указанные в настрокйах ищутся в этом моде",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
-        member private ModName: string
+        member ModName: string
         
         [<NetScriptFramework.Tools.ConfigValue
           ("OnlyPlayer", "Только для игрока",
@@ -135,9 +141,19 @@ namespace Blood
                   Create: caster: NetScriptFramework.SkyrimSE.Actor ->
                             BloodMagickPlugin.Domen.CastsHandHandler
             
+            type Costs =
+                {
+                  MagickCost: float32
+                  HealthCost: float32
+                }
+                
+                static member
+                  Create: magickCost: float32 ->
+                            healthCost: float32 -> BloodMagickPlugin.Domen.Costs
+            
             type CostDict =
                 System.Collections.Concurrent.ConcurrentDictionary<nativeint,
-                                                                   float32>
+                                                                   BloodMagickPlugin.Domen.Costs>
             
             [<RequireQualifiedAccess>]
             type MenuState =
@@ -208,7 +224,8 @@ namespace Blood
           eArg: NetScriptFramework.SkyrimSE.CalculateMagicCostEventArgs -> unit
         
         val onSpendMagicCost:
-          eArg: NetScriptFramework.SkyrimSE.SpendMagicCostEventArgs -> unit
+          eArg: NetScriptFramework.SkyrimSE.SpendMagicCostEventArgs ->
+            delta: float32 -> unit
         
         val onMagicCasterFire:
           eArg: NetScriptFramework.SkyrimSE.MagicCasterFireEventArgs -> unit

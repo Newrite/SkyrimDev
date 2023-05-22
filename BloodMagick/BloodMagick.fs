@@ -83,7 +83,15 @@ module BloodMagickPlugin =
           LeftCast = CastCostHandler.Create()
           RightCast = CastCostHandler.Create() }
     
-    type CostDict = Collections.Concurrent.ConcurrentDictionary<nativeint,float32>
+    type Costs =
+      { MagickCost: float32
+        HealthCost: float32 }
+    with
+      static member Create magickCost healthCost =
+        { MagickCost = magickCost
+          HealthCost = healthCost }
+    
+    type CostDict = Collections.Concurrent.ConcurrentDictionary<nativeint, Costs>
   
     [<RequireQualifiedAccess>]
     type MenuState =
@@ -222,10 +230,10 @@ module BloodMagickPlugin =
     | true -> Log "Config success loaded"
     | false -> Log "Config not load, generate"
     if config.BloodSpellsKwd.IsNone && config.BloodSpellsAb.IsNone then
-      Log <| sprintf "Keyword or spell for blood spells is None"
+      Log "Keyword or spell for blood spells is None"
       false
     else
-      Log <| sprintf "Bloodspells Ok"
+      Log "Bloodspells Ok"
       true
 
   let onInterruptCast (eArg: InterruptCastEventArgs )=
@@ -354,21 +362,28 @@ module BloodMagickPlugin =
         
     let isConcentrationSpell = Functions.isConcentrationSpell eArg.Item
     let percentCost = calculatePercentCost eArg.Item eArg.ResultValue
+    let magickSpellCost =
+      if config.BloodSpellsPercentConvert > 0.f then
+        if config.BloodSpellsPercentConvert < 100.f then
+          eArg.ResultValue * ((100.f - config.BloodSpellsPercentConvert) / 100.f)
+        else 0.f
+      else 0.f
     let casterHealthCost = (eArg.Caster.GetActorValueMax(ActorValueIndices.Health) / 100.f) * percentCost
     
-    let spellCost = eArg.ResultValue + casterHealthCost
+    let healthSpellCost = (eArg.ResultValue - magickSpellCost) + casterHealthCost
+    
+    let costs = Domen.Costs.Create magickSpellCost healthSpellCost
 
-    if not isConcentrationSpell then
-      costDict.AddOrUpdate(eArg.Item.Address, spellCost, fun _ _ -> spellCost) |> ignore
+    costDict.AddOrUpdate(eArg.Item.Address, costs, fun _ _ -> costs) |> ignore
 
     if Call.MenuManagerInstance().IsMenuOpen("MagicMenu") && eArg.Caster.IsPlayer then
-      eArg.ResultValue <- spellCost
+      eArg.ResultValue <- healthSpellCost + magickSpellCost
     elif isConcentrationSpell then
-      eArg.ResultValue <- spellCost
+      eArg.ResultValue <- magickSpellCost
     else
-      eArg.ResultValue <- 0.f
+      eArg.ResultValue <- magickSpellCost
 
-  let onSpendMagicCost (eArg: SpendMagicCostEventArgs) =
+  let onSpendMagicCost (eArg: SpendMagicCostEventArgs) (delta: float32) =
 
     let validAndBaseAllow = Functions.isActorMagicCasterValidAndIsSpellBloodSpell eArg.Spender eArg.Item
 
@@ -385,14 +400,26 @@ module BloodMagickPlugin =
     let concentrationSpell = Functions.isConcentrationSpell eArg.Item
 
     if validSpell && concentrationSpell then
+      
+      let casterHealth = eArg.Spender.Owner.GetActorValue(ActorValueIndices.Health)
 
-      if eArg.Spender.Owner.GetActorValue(ActorValueIndices.Health) <= castHealthTreshold then
-        if eArg.Spender.Owner.IsPlayer then
-          Functions.failCast()
-        eArg.Spender.InterruptCast()
-      else
-        eArg.Spender.Owner.SetAvRegenDelay indexAvDrainHealth 0.1f
-        eArg.ActorValueIndex <- indexAvDrainHealth
+      if castersDict.ContainsKey(eArg.Spender.Owner.Address) then
+        
+        let castHandler, costDict = castersDict[eArg.Spender.Owner.Address]
+        let costs = costDict[eArg.Item.Address]
+        let tickHealthCost = costs.HealthCost * delta
+        
+        if tickHealthCost >= casterHealth then
+          
+          if eArg.Spender.Owner.IsPlayer then
+            Functions.failCast()
+            
+          eArg.Spender.InterruptCast()
+          
+        else
+          eArg.Spender.Owner.DamageActorValue(ActorValueIndices.Health, -tickHealthCost)
+          eArg.Spender.Owner.SetAvRegenDelay indexAvDrainHealth 0.1f
+          // eArg.ActorValueIndex <- indexAvDrainHealth
 
     if validSpell && not concentrationSpell && castersDict.ContainsKey(eArg.Spender.Owner.Address) then
 
@@ -401,7 +428,7 @@ module BloodMagickPlugin =
       let castHandler, costDict = castersDict[eArg.Spender.Owner.Address]
 
       let mult = if dualCast then 2.f else 1.f
-      let cost = costDict[eArg.Item.Address] * mult
+      let cost = costDict[eArg.Item.Address].HealthCost * mult
 
       eArg.Spender.Owner.SetAvRegenDelay indexAvDrainHealth 0.1f
       let numIter, costForIter = Functions.getNumberOfIterationsAndCostForIter spell.SpellData.ChargeTime cost
@@ -456,6 +483,7 @@ type BloodMagickPlugin() =
   inherit Plugin()
   let mutable modInit = false
   let mutable lastTime10ms = 0L
+  let mutable lastTime = 0L
   let timer = Tools.Timer()
 
   override _.Key = "bloodmagick"
@@ -484,6 +512,8 @@ type BloodMagickPlugin() =
         let now = timer.Time
 
         BloodMagickPlugin.onFrameAlways()
+        
+        lastTime <- now
 
         if now - lastTime10ms >= 10 then
           BloodMagickPlugin.onFrame10ms()
@@ -509,7 +539,7 @@ type BloodMagickPlugin() =
     Events.OnSpendMagicCost.Register(fun eArg ->
 
       if modInit then
-        BloodMagickPlugin.onSpendMagicCost eArg
+        BloodMagickPlugin.onSpendMagicCost eArg (float32 (timer.Time - lastTime) / 1000.f)
 
       ) |> ignore
     

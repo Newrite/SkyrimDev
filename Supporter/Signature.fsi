@@ -130,25 +130,25 @@ namespace Supporter
         member ModName: string
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("OnAdjustEffectHookEnable", "On Adjust Effect Hook",
+          ("OnAdjustEffectHookEnable", "DEPRECATED On Adjust Effect Hook",
            "Disable or enable hook",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
         member OnAdjustEffectHookEnable: bool
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("OnAnimationHackHookEnable", "On Animation Hack Hook",
+          ("OnAnimationHackHookEnable", "DEPRECATED On Animation Hack Hook",
            "Disable or enable hook",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
         member OnAnimationHackHookEnable: bool
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("OnAttackDataHookEnable", "On Attack Data Hook",
+          ("OnAttackDataHookEnable", "DEPRECATED On Attack Data Hook",
            "Disable or enable hook",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
         member OnAttackDataHookEnable: bool
         
         [<NetScriptFramework.Tools.ConfigValue
-          ("OnWeaponHitHookEnable", "On Weapon Hit Hook",
+          ("OnWeaponHitHookEnable", "DEPRECATED On Weapon Hit Hook",
            "Disable or enable hook",
            enum<NetScriptFramework.Tools.ConfigEntryFlags> (0UL))>]
         member OnWeaponHitHookEnable: bool

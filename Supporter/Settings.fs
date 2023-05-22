@@ -145,24 +145,24 @@ type Settings() =
     member val DiffMultHPToPCLGlobalId = 0x81Cu with get, set
 
     [<ConfigValue("OnAdjustEffectHookEnable",
-    "On Adjust Effect Hook",
+    "DEPRECATED On Adjust Effect Hook",
     "Disable or enable hook")>]
-    member val OnAdjustEffectHookEnable = true with get, set
+    member val OnAdjustEffectHookEnable = false with get, set
 
     [<ConfigValue("OnWeaponHitHookEnable",
-    "On Weapon Hit Hook",
+    "DEPRECATED On Weapon Hit Hook",
     "Disable or enable hook")>]
-    member val OnWeaponHitHookEnable = true with get, set
+    member val OnWeaponHitHookEnable = false with get, set
 
     [<ConfigValue("OnAttackDataHookEnable",
-    "On Attack Data Hook",
+    "DEPRECATED On Attack Data Hook",
     "Disable or enable hook")>]
-    member val OnAttackDataHookEnable = true with get, set
+    member val OnAttackDataHookEnable = false with get, set
 
     [<ConfigValue("OnAnimationHackHookEnable",
-    "On Animation Hack Hook",
+    "DEPRECATED On Animation Hack Hook",
     "Disable or enable hook")>]
-    member val OnAnimationHackHookEnable = true with get, set
+    member val OnAnimationHackHookEnable = false with get, set
     
     // for PLAYER
     member self.GlobalWeaponSwingLeft = 
